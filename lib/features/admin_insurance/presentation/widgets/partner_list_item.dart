@@ -1,0 +1,402 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
+
+import '../../domain/entities/insurance_partner.dart';
+
+class PartnerListItem extends StatelessWidget {
+  final InsurancePartner partner;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final VoidCallback onTap;
+  final ValueChanged<bool> onSelectionChanged;
+  final ValueChanged<PartnerStatus> onStatusChanged;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const PartnerListItem({
+    super.key,
+    required this.partner,
+    required this.isSelected,
+    required this.isSelectionMode,
+    required this.onTap,
+    required this.onSelectionChanged,
+    required this.onStatusChanged,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      color: isSelected 
+          ? Theme.of(context).colorScheme.primaryContainer
+          : Theme.of(context).colorScheme.surfaceContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        side: isSelected
+            ? BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)
+            : BorderSide.none,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                children: [
+                  if (isSelectionMode) ...[
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: (value) => onSelectionChanged(value ?? false),
+                    ),
+                    SizedBox(width: 8.w),
+                  ],
+                  
+                  // Partner Logo/Icon
+                  Container(
+                    width: 40.r,
+                    height: 40.r,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(
+                      Icons.business,
+                      size: 20.r,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  
+                  // Partner Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          partner.displayName,
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          partner.type.displayName,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          'Since ${DateFormat('MMM yyyy').format(partner.establishedDate)}',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Status Badge
+                  _buildStatusBadge(context),
+                ],
+              ),
+              
+              SizedBox(height: 12.h),
+              
+              // Partner Details Row
+              Row(
+                children: [
+                  // Rating
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Rating',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.star,
+                              size: 12.r,
+                              color: Colors.amber,
+                            ),
+                            SizedBox(width: 2.w),
+                            Text(
+                              partner.rating.overallRating.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Customers
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Customers',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          _formatNumber(partner.totalCustomers),
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Revenue
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Revenue',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          'TZS ${_formatCurrency(partner.financials.totalRevenue)}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              
+              SizedBox(height: 12.h),
+              
+              // Bottom Row - Actions
+              if (!isSelectionMode) ...[
+                Row(
+                  children: [
+                    // Verification badges
+                    if (partner.isVerified) ...[
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.verified,
+                              size: 10.r,
+                              color: Colors.green,
+                            ),
+                            SizedBox(width: 2.w),
+                            Text(
+                              'Verified',
+                              style: TextStyle(
+                                fontSize: 9.sp,
+                                color: Colors.green,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 4.w),
+                    ],
+                    
+                    if (partner.isFeatured) ...[
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.star,
+                              size: 10.r,
+                              color: Colors.purple,
+                            ),
+                            SizedBox(width: 2.w),
+                            Text(
+                              'Featured',
+                              style: TextStyle(
+                                fontSize: 9.sp,
+                                color: Colors.purple,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 4.w),
+                    ],
+                    
+                    const Spacer(),
+                    
+                    // Actions
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert,
+                        size: 16.r,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      onSelected: (value) => _handleAction(context, value),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(value: 'status', child: Text('Change Status')),
+                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        const PopupMenuItem(value: 'view', child: Text('View Details')),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(BuildContext context) {
+    Color backgroundColor;
+    Color textColor;
+
+    switch (partner.status) {
+      case PartnerStatus.active:
+        backgroundColor = Colors.green.withValues(alpha: 0.1);
+        textColor = Colors.green;
+        break;
+      case PartnerStatus.inactive:
+        backgroundColor = Colors.grey.withValues(alpha: 0.1);
+        textColor = Colors.grey;
+        break;
+      case PartnerStatus.suspended:
+        backgroundColor = Colors.red.withValues(alpha: 0.1);
+        textColor = Colors.red;
+        break;
+      case PartnerStatus.pending:
+        backgroundColor = Colors.orange.withValues(alpha: 0.1);
+        textColor = Colors.orange;
+        break;
+      case PartnerStatus.rejected:
+        backgroundColor = Colors.red.withValues(alpha: 0.1);
+        textColor = Colors.red;
+        break;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Text(
+        partner.status.displayName,
+        style: TextStyle(
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w500,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+
+  String _formatNumber(int number) {
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    } else if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}K';
+    } else {
+      return number.toString();
+    }
+  }
+
+  String _formatCurrency(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    } else {
+      return amount.toStringAsFixed(0);
+    }
+  }
+
+  void _handleAction(BuildContext context, String action) {
+    switch (action) {
+      case 'status':
+        _showStatusDialog(context);
+        break;
+      case 'edit':
+        onEdit();
+        break;
+      case 'delete':
+        onDelete();
+        break;
+      case 'view':
+        onTap();
+        break;
+    }
+  }
+
+  void _showStatusDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Status'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: PartnerStatus.values.map((status) {
+            return ListTile(
+              title: Text(status.displayName),
+              onTap: () {
+                Navigator.of(context).pop();
+                onStatusChanged(status);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}

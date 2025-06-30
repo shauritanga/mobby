@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "751356999826",
+    "project_id": "mobby-zapp",
+    "storage_bucket": "mobby-zapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751356999826:android:2b3b1ad852e1c8f62bce4b",
+        "android_client_info": {
+          "package_name": "com.example.mobby"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJXcbbSQaRzgxlE3t0s0uDEwu42cBmvcg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
