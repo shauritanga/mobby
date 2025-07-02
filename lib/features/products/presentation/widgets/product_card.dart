@@ -6,7 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../domain/entities/product.dart';
 import '../providers/product_providers_setup.dart';
 
-class ProductCard extends ConsumerWidget {
+class ProductCard extends ConsumerStatefulWidget {
   final Product product;
   final bool isGridView;
   final VoidCallback? onTap;
@@ -21,8 +21,33 @@ class ProductCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isInWishlist = ref.isProductInWishlist(product.id);
+  ConsumerState<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+
+  void _onTapDown(TapDownDetails details) {
+    setState(() {
+      _isPressed = true;
+    });
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    setState(() {
+      _isPressed = false;
+    });
+  }
+
+  void _onTapCancel() {
+    setState(() {
+      _isPressed = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isInWishlist = ref.isProductInWishlist(widget.product.id);
     
     return Card(
       elevation: 2,
@@ -30,10 +55,17 @@ class ProductCard extends ConsumerWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
-        child: isGridView ? _buildGridCard(context, isInWishlist) : _buildListCard(context, isInWishlist),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: InkWell(
+          onTap: widget.onTap,
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
+          borderRadius: BorderRadius.circular(12.r),
+          child: widget.isGridView ? _buildGridCard(context, isInWishlist) : _buildListCard(context, isInWishlist),
+        ),
       ),
     );
   }
@@ -58,7 +90,7 @@ class ProductCard extends ConsumerWidget {
               children: [
                 // Product Name
                 Text(
-                  product.name,
+                  widget.product.name,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
@@ -72,7 +104,7 @@ class ProductCard extends ConsumerWidget {
                 
                 // Brand
                 Text(
-                  product.brandName,
+                  widget.product.brandName,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: Theme.of(context).hintColor,
@@ -120,7 +152,7 @@ class ProductCard extends ConsumerWidget {
               children: [
                 // Product Name
                 Text(
-                  product.name,
+                  widget.product.name,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
@@ -134,7 +166,7 @@ class ProductCard extends ConsumerWidget {
                 
                 // Brand
                 Text(
-                  product.brandName,
+                  widget.product.brandName,
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Theme.of(context).hintColor,
@@ -144,9 +176,9 @@ class ProductCard extends ConsumerWidget {
                 SizedBox(height: 8.h),
                 
                 // Short Description
-                if (product.shortDescription != null) ...[
+                if (widget.product.shortDescription != null) ...[
                   Text(
-                    product.shortDescription!,
+                    widget.product.shortDescription!,
                     style: TextStyle(
                       fontSize: 13.sp,
                       color: Theme.of(context).hintColor,
@@ -193,8 +225,8 @@ class ProductCard extends ConsumerWidget {
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(12.r),
               topRight: Radius.circular(12.r),
-              bottomLeft: isGridView ? Radius.zero : Radius.circular(12.r),
-              bottomRight: isGridView ? Radius.zero : Radius.circular(12.r),
+              bottomLeft: widget.isGridView ? Radius.zero : Radius.circular(12.r),
+              bottomRight: widget.isGridView ? Radius.zero : Radius.circular(12.r),
             ),
             color: Theme.of(context).cardColor,
           ),
@@ -202,11 +234,11 @@ class ProductCard extends ConsumerWidget {
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(12.r),
               topRight: Radius.circular(12.r),
-              bottomLeft: isGridView ? Radius.zero : Radius.circular(12.r),
-              bottomRight: isGridView ? Radius.zero : Radius.circular(12.r),
+              bottomLeft: widget.isGridView ? Radius.zero : Radius.circular(12.r),
+              bottomRight: widget.isGridView ? Radius.zero : Radius.circular(12.r),
             ),
             child: CachedNetworkImage(
-              imageUrl: product.imageUrl,
+              imageUrl: widget.product.imageUrl,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
                 color: Colors.grey[100],
@@ -229,7 +261,7 @@ class ProductCard extends ConsumerWidget {
         ),
         
         // Sale Badge
-        if (product.isOnSale)
+        if (widget.product.isOnSale)
           Positioned(
             top: 8.h,
             left: 8.w,
@@ -240,7 +272,7 @@ class ProductCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(4.r),
               ),
               child: Text(
-                '-${product.discountPercentage.toInt()}%',
+                '-${widget.product.discountPercentage.toInt()}%',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 10.sp,
@@ -255,7 +287,7 @@ class ProductCard extends ConsumerWidget {
           top: 8.h,
           right: 8.w,
           child: GestureDetector(
-            onTap: onWishlistTap,
+            onTap: widget.onWishlistTap,
             child: Container(
               padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
@@ -279,7 +311,7 @@ class ProductCard extends ConsumerWidget {
         ),
         
         // Stock Status Overlay
-        if (product.isOutOfStock)
+        if (widget.product.isOutOfStock)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -287,8 +319,8 @@ class ProductCard extends ConsumerWidget {
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(12.r),
                   topRight: Radius.circular(12.r),
-                  bottomLeft: isGridView ? Radius.zero : Radius.circular(12.r),
-                  bottomRight: isGridView ? Radius.zero : Radius.circular(12.r),
+                  bottomLeft: widget.isGridView ? Radius.zero : Radius.circular(12.r),
+                  bottomRight: widget.isGridView ? Radius.zero : Radius.circular(12.r),
                 ),
               ),
               child: Center(
@@ -313,20 +345,20 @@ class ProductCard extends ConsumerWidget {
       children: [
         // Current Price
         Text(
-          'TZS ${_formatPrice(product.price)}',
+          'TZS ${_formatPrice(widget.product.price)}',
           style: TextStyle(
-            fontSize: isGridView ? 14.sp : 16.sp,
+            fontSize: widget.isGridView ? 14.sp : 16.sp,
             fontWeight: FontWeight.w700,
             color: Theme.of(context).primaryColor,
           ),
         ),
         
         // Original Price (if on sale)
-        if (product.isOnSale && product.originalPrice != null)
+        if (widget.product.isOnSale && widget.product.originalPrice != null)
           Text(
-            'TZS ${_formatPrice(product.originalPrice!)}',
+            'TZS ${_formatPrice(widget.product.originalPrice!)}',
             style: TextStyle(
-              fontSize: isGridView ? 12.sp : 14.sp,
+              fontSize: widget.isGridView ? 12.sp : 14.sp,
               color: Theme.of(context).hintColor,
               decoration: TextDecoration.lineThrough,
             ),
@@ -346,16 +378,16 @@ class ProductCard extends ConsumerWidget {
         ),
         SizedBox(width: 2.w),
         Text(
-          product.rating.toStringAsFixed(1),
+          widget.product.rating.toStringAsFixed(1),
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
-        if (product.reviewCount > 0) ...[
+        if (widget.product.reviewCount > 0) ...[
           SizedBox(width: 2.w),
           Text(
-            '(${product.reviewCount})',
+            '(${widget.product.reviewCount})',
             style: TextStyle(
               fontSize: 10.sp,
               color: Theme.of(context).hintColor,
@@ -370,10 +402,10 @@ class ProductCard extends ConsumerWidget {
     Color statusColor;
     String statusText;
     
-    if (product.isOutOfStock) {
+    if (widget.product.isOutOfStock) {
       statusColor = Theme.of(context).colorScheme.error;
       statusText = 'Out of Stock';
-    } else if (product.isLowStock) {
+    } else if (widget.product.isLowStock) {
       statusColor = Colors.orange;
       statusText = 'Low Stock';
     } else {

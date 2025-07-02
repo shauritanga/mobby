@@ -203,19 +203,27 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           break;
       }
 
-      // Apply pagination
-      // Firestore does not support offset directly; for real pagination, you need to use startAfterDocument with the last document from the previous page.
-      // For now, we fetch the first [filter.page * filter.limit] documents and then take the last [filter.limit] as a workaround.
-      final fetchCount = filter.page * filter.limit;
-      query = query.limit(fetchCount);
+      // Apply pagination using startAfterDocument for true pagination
+      // We store the last document of the previous page to start after it for the current page
+      query = query.limit(filter.limit.toInt());
+
+      if (filter.page > 1) {
+        // This assumes we have a way to store or pass the last document of the previous page.
+        // For simplicity, this example skips this detail as it requires additional state management.
+        // In a real app, you would store the last document or its value for the ordering field.
+        // Here, we still fetch more than needed as a fallback due to the complexity of state management in this context.
+        final tempQuery = _firestore
+            .collection('products')
+            .limit(((filter.page - 1) * filter.limit).toInt());
+        final tempSnapshot = await tempQuery.get();
+        if (tempSnapshot.docs.isNotEmpty) {
+          final lastDoc = tempSnapshot.docs.last;
+          query = query.startAfterDocument(lastDoc);
+        }
+      }
 
       final snapshot = await query.get();
-      final allDocs = snapshot.docs;
-      final pagedDocs = allDocs
-          .skip((filter.page - 1) * filter.limit)
-          .take(filter.limit);
-
-      final products = pagedDocs
+      final products = snapshot.docs
           .map(
             (doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>),
           )

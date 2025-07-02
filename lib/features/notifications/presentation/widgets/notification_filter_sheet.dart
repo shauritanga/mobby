@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../domain/entities/notification.dart' as domain;
-import '../providers/notifications_provider.dart';
-import '../../di/notifications_di.dart';
+import 'package:mobby/features/notifications/notifications_feature.dart';
 
 class NotificationFilterSheet extends ConsumerStatefulWidget {
   const NotificationFilterSheet({super.key});

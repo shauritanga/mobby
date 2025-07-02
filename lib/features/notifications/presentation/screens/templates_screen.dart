@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../domain/entities/template.dart';
 import '../providers/templates_provider.dart';
+import '../../domain/entities/template.dart';
+import '../../di/templates_di.dart';
 import '../widgets/template_card.dart';
 import '../widgets/template_filter_sheet.dart';
 
@@ -518,8 +519,25 @@ class _TemplatePreviewDialog extends StatelessWidget {
   }
 }
 
-// Provider definitions (these would typically be in a separate file)
+// Provider definitions
 final templatesProvider = StateNotifierProvider<TemplatesNotifier, TemplatesState>((ref) {
-  // This would be properly injected with dependencies
-  throw UnimplementedError('Provider not properly configured');
+  final getTemplates = ref.watch(getTemplatesProvider);
+  final createTemplate = ref.watch(createTemplateProvider);
+  final updateTemplate = ref.watch(updateTemplateProvider);
+  final deleteTemplate = ref.watch(deleteTemplateProvider);
+  final validateTemplate = ref.watch(validateTemplateProvider);
+  final previewTemplate = ref.watch(previewTemplateProvider);
+  final duplicateTemplate = ref.watch(duplicateTemplateProvider);
+  final getTemplatesByType = ref.watch(getTemplatesByTypeProvider);
+  
+  return TemplatesNotifier(
+    getTemplates: getTemplates,
+    createTemplate: createTemplate,
+    updateTemplate: updateTemplate,
+    deleteTemplate: deleteTemplate,
+    validateTemplate: validateTemplate,
+    previewTemplate: previewTemplate,
+    duplicateTemplate: duplicateTemplate,
+    getTemplatesByType: getTemplatesByType,
+  );
 });

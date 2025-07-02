@@ -266,6 +266,10 @@ class CampaignsNotifier extends StateNotifier<CampaignsState> {
     }
   }
 
+
+
+
+
   Future<void> pauseCampaign(String campaignId) async {
     try {
       final result = await _pauseCampaign(PauseCampaignParams(

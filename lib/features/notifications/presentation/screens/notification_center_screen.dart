@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobby/features/notifications/notifications_feature.dart'
+    hide notificationsProvider;
 import '../../domain/entities/notification.dart' as domain;
-import '../providers/notifications_provider.dart';
-import '../widgets/notification_card.dart';
 import '../widgets/notification_filter_sheet.dart';
 
 class NotificationCenterScreen extends ConsumerStatefulWidget {
@@ -354,6 +354,11 @@ class _NotificationCenterScreenState
 // Provider definitions (these would typically be in a separate file)
 final notificationsProvider =
     StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
-      // This would be properly injected with dependencies
-      throw UnimplementedError('Provider not properly configured');
+      return NotificationsNotifier(
+        getUserNotifications: ref.watch(getUserNotificationsProvider),
+        markAsRead: ref.watch(markNotificationAsReadProvider),
+        markAllAsRead: ref.watch(markAllNotificationsAsReadProvider),
+        getUnreadCount: ref.watch(getUnreadCountProvider),
+        deleteNotification: ref.watch(deleteNotificationProvider),
+      );
     });

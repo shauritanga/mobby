@@ -31,12 +31,52 @@ abstract class CampaignsRemoteDataSource {
     DateTime? startDate,
     DateTime? endDate,
   });
+
+  // Real-time watching methods
+  Stream<CampaignModel> watchCampaign(String campaignId);
+  Stream<List<CampaignModel>> watchCampaigns();
+  Stream<CampaignStatsModel> watchCampaignStats(String campaignId);
 }
 
 class CampaignsRemoteDataSourceImpl implements CampaignsRemoteDataSource {
   final FirebaseFirestore _firestore;
 
   CampaignsRemoteDataSourceImpl(this._firestore);
+
+  @override
+  Stream<CampaignModel> watchCampaign(String campaignId) {
+    return _firestore
+        .collection('campaigns')
+        .doc(campaignId)
+        .snapshots()
+        .map((doc) => CampaignModel.fromJson({'id': doc.id, ...doc.data()!}));
+  }
+
+  @override
+  Stream<List<CampaignModel>> watchCampaigns() {
+    return _firestore
+        .collection('campaigns')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => CampaignModel.fromJson({'id': doc.id, ...doc.data()}),
+              )
+              .toList(),
+        );
+  }
+
+  @override
+  Stream<CampaignStatsModel> watchCampaignStats(String campaignId) {
+    return _firestore
+        .collection('campaigns')
+        .doc(campaignId)
+        .collection('stats')
+        .doc('current')
+        .snapshots()
+        .map((doc) => CampaignStatsModel.fromJson(doc.data()!));
+  }
 
   @override
   Future<List<CampaignModel>> getCampaigns({

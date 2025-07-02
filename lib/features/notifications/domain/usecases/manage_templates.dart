@@ -152,6 +152,74 @@ class DeleteTemplate implements UseCase<void, DeleteTemplateParams> {
   }
 }
 
+class ImportTemplateParams {
+  final String templateId;
+
+  const ImportTemplateParams({required this.templateId});
+}
+
+class ImportTemplate implements UseCase<Template, ImportTemplateParams> {
+  final TemplatesRepository repository;
+
+  ImportTemplate(this.repository);
+
+  @override
+  Future<Either<Failure, Template>> call(ImportTemplateParams params) async {
+    try {
+      final template = await repository.importTemplate({
+        'templateId': params.templateId,
+      });
+      return Right(template);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+}
+
+class ExportTemplateParams {
+  final String templateId;
+
+  const ExportTemplateParams({required this.templateId});
+}
+
+class ExportTemplate implements UseCase<void, ExportTemplateParams> {
+  final TemplatesRepository repository;
+
+  ExportTemplate(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(ExportTemplateParams params) async {
+    try {
+      await repository.exportTemplate(params.templateId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+}
+
+class WatchTemplatesParams {
+  final String templateId;
+
+  const WatchTemplatesParams({required this.templateId});
+}
+
+class WatchTemplates implements UseCase<void, WatchTemplatesParams> {
+  final TemplatesRepository repository;
+
+  WatchTemplates(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(WatchTemplatesParams params) async {
+    try {
+      await repository.watchTemplate(params.templateId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+}
+
 class PreviewTemplateParams {
   final String templateId;
   final Map<String, dynamic> data;

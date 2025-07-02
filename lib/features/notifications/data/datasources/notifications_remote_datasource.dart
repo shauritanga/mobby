@@ -3,6 +3,8 @@ import '../models/notification_model.dart';
 import '../../domain/entities/notification.dart';
 
 abstract class NotificationsRemoteDataSource {
+  Stream<NotificationModel> watchNotifications(String userId);
+  Stream<int> watchUnreadCount(String userId);
   Future<List<NotificationModel>> getUserNotifications(
     String userId, {
     int page = 1,
@@ -48,6 +50,33 @@ class NotificationsRemoteDataSourceImpl
   final FirebaseFirestore _firestore;
 
   NotificationsRemoteDataSourceImpl(this._firestore);
+
+  @override
+  Stream<NotificationModel> watchNotifications(String userId) {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.isNotEmpty
+            ? NotificationModel.fromJson({
+                'id': snapshot.docs.first.id,
+                ...snapshot.docs.first.data(),
+              })
+            : throw Exception('No notifications found'));
+  }
+
+  @override
+  Stream<int> watchUnreadCount(String userId) {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: NotificationStatus.unread.name)
+        .snapshots()
+        .map((snapshot) => snapshot.size);
+  }
+
+
 
   @override
   Future<List<NotificationModel>> getUserNotifications(

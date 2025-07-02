@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobby/features/notifications/notifications_feature.dart';
 import '../../domain/entities/campaign.dart';
 import '../providers/campaigns_provider.dart';
 
@@ -25,7 +26,7 @@ class CampaignCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final statsState = ref.watch(campaignStatsProvider);
+    final statsState = ref.watch(campaignStatsProvider(campaign.id));
     final stats = statsState.stats[campaign.id];
 
     return Container(
@@ -169,7 +170,10 @@ class CampaignCard extends ConsumerWidget {
                             value: 'delete',
                             child: ListTile(
                               leading: Icon(Icons.delete, color: Colors.red),
-                              title: Text('Delete', style: TextStyle(color: Colors.red)),
+                              title: Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
                               contentPadding: EdgeInsets.zero,
                             ),
                           ),
@@ -257,11 +261,7 @@ class CampaignCard extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14.w,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: 14.w, color: theme.colorScheme.onSurfaceVariant),
           SizedBox(width: 4.w),
           Text(
             label,
@@ -420,8 +420,13 @@ class CampaignCard extends ConsumerWidget {
   }
 }
 
-// Provider definitions (these would typically be in a separate file)
-final campaignStatsProvider = StateNotifierProvider<CampaignStatsNotifier, CampaignStatsState>((ref) {
-  // This would be properly injected with dependencies
-  throw UnimplementedError('Provider not properly configured');
-});
+// Provider definitions
+final campaignStatsProvider =
+    StateNotifierProvider.family<
+      CampaignStatsNotifier,
+      CampaignStatsState,
+      String
+    >((ref, campaignId) {
+      final watchCampaignStats = ref.watch(getCampaignStatsProvider);
+      return CampaignStatsNotifier(getCampaignStats: watchCampaignStats);
+    });

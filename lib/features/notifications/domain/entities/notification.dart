@@ -11,27 +11,11 @@ enum NotificationType {
   reminder,
 }
 
-enum NotificationPriority {
-  low,
-  normal,
-  high,
-  urgent,
-}
+enum NotificationPriority { low, normal, high, urgent }
 
-enum NotificationStatus {
-  pending,
-  sent,
-  delivered,
-  read,
-  failed,
-}
+enum NotificationStatus { pending, sent, delivered, read, unread, failed }
 
-enum NotificationChannel {
-  push,
-  email,
-  sms,
-  inApp,
-}
+enum NotificationChannel { push, email, sms, inApp }
 
 class Notification extends Equatable {
   final String id;
@@ -82,40 +66,41 @@ class Notification extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        title,
-        body,
-        type,
-        priority,
-        status,
-        channels,
-        data,
-        imageUrl,
-        actionUrl,
-        actionText,
-        scheduledAt,
-        sentAt,
-        deliveredAt,
-        readAt,
-        campaignId,
-        templateId,
-        metadata,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    userId,
+    title,
+    body,
+    type,
+    priority,
+    status,
+    channels,
+    data,
+    imageUrl,
+    actionUrl,
+    actionText,
+    scheduledAt,
+    sentAt,
+    deliveredAt,
+    readAt,
+    campaignId,
+    templateId,
+    metadata,
+    createdAt,
+    updatedAt,
+  ];
 
   // Computed properties
   bool get isRead => readAt != null;
   bool get isDelivered => deliveredAt != null;
   bool get isSent => sentAt != null;
-  bool get isScheduled => scheduledAt != null && scheduledAt!.isAfter(DateTime.now());
+  bool get isScheduled =>
+      scheduledAt != null && scheduledAt!.isAfter(DateTime.now());
   bool get hasAction => actionUrl != null && actionText != null;
-  
+
   String get timeAgo {
     final now = DateTime.now();
     final difference = now.difference(createdAt);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays}d ago';
     } else if (difference.inHours > 0) {
@@ -150,6 +135,8 @@ class Notification extends Equatable {
         return 'Delivered';
       case NotificationStatus.read:
         return 'Read';
+      case NotificationStatus.unread:
+        return 'Unread';
       case NotificationStatus.failed:
         return 'Failed';
     }

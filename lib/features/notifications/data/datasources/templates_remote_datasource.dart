@@ -3,6 +3,8 @@ import '../models/template_model.dart';
 import '../../domain/entities/template.dart';
 
 abstract class TemplatesRemoteDataSource {
+  Stream<TemplateModel> watchTemplate(String templateId);
+  Stream<List<TemplateModel>> watchTemplates();
   Future<List<TemplateModel>> getTemplates({
     int page = 1,
     int limit = 20,
@@ -38,6 +40,26 @@ class TemplatesRemoteDataSourceImpl implements TemplatesRemoteDataSource {
   final FirebaseFirestore _firestore;
 
   TemplatesRemoteDataSourceImpl(this._firestore);
+
+  @override
+  Stream<TemplateModel> watchTemplate(String templateId) {
+    return _firestore
+        .collection('templates')
+        .doc(templateId)
+        .snapshots()
+        .map((doc) => TemplateModel.fromJson({'id': doc.id, ...doc.data()!}));
+  }
+
+  @override
+  Stream<List<TemplateModel>> watchTemplates() {
+    return _firestore
+        .collection('templates')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TemplateModel.fromJson({'id': doc.id, ...doc.data()}))
+            .toList());
+  }
 
   @override
   Future<List<TemplateModel>> getTemplates({

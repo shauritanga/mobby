@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import '../../domain/entities/template.dart';
 import '../../domain/repositories/templates_repository.dart';
 import '../datasources/templates_remote_datasource.dart';
@@ -317,9 +319,21 @@ class TemplatesRepositoryImpl implements TemplatesRepository {
 
   @override
   Future<List<Template>> importTemplatesFromFile(String filePath) async {
-    // This would require file system access and JSON parsing
-    // For now, we'll throw an unimplemented error
-    throw UnimplementedError('File import not implemented yet');
+    try {
+      final file = File(filePath);
+      final content = await file.readAsString();
+      final List<dynamic> jsonList = json.decode(content);
+      
+      final templates = <Template>[];
+      for (final json in jsonList) {
+        final template = await importTemplate(json);
+        templates.add(template);
+      }
+      
+      return templates;
+    } catch (e) {
+      throw Exception('Failed to import templates from file: $e');
+    }
   }
 
   @override
@@ -327,20 +341,31 @@ class TemplatesRepositoryImpl implements TemplatesRepository {
     List<String> templateIds,
     String filePath,
   ) async {
-    // This would require file system access and JSON serialization
-    // For now, we'll throw an unimplemented error
-    throw UnimplementedError('File export not implemented yet');
+    try {
+      final templates = <Map<String, dynamic>>[];
+      for (final id in templateIds) {
+        final template = await exportTemplate(id);
+        templates.add(template);
+      }
+      
+      final file = File(filePath);
+      await file.writeAsString(json.encode(templates));
+    } catch (e) {
+      throw Exception('Failed to export templates to file: $e');
+    }
   }
 
   @override
   Stream<Template> watchTemplate(String templateId) {
-    // This would require implementing real-time listeners
-    throw UnimplementedError('Real-time template watching not implemented yet');
+    return remoteDataSource.watchTemplate(templateId).map(
+          (model) => model.toEntity(),
+        );
   }
 
   @override
   Stream<List<Template>> watchTemplates() {
-    // This would require implementing real-time listeners
-    throw UnimplementedError('Real-time templates watching not implemented yet');
+    return remoteDataSource.watchTemplates().map(
+          (models) => models.map((model) => model.toEntity()).toList(),
+        );
   }
 }

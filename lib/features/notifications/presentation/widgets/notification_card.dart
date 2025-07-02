@@ -283,6 +283,9 @@ class NotificationCard extends StatelessWidget {
       case domain.NotificationStatus.read:
         color = Colors.teal;
         break;
+      case domain.NotificationStatus.unread:
+        color = Colors.purple;
+        break;
       case domain.NotificationStatus.failed:
         color = Colors.red;
         break;

@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../domain/entities/campaign.dart';
-import '../providers/campaigns_provider.dart';
-import '../widgets/campaign_card.dart';
-import '../widgets/campaign_stats_card.dart';
+import 'package:mobby/features/notifications/notifications_feature.dart';
 
 class CampaignManagementScreen extends ConsumerStatefulWidget {
   const CampaignManagementScreen({super.key});
 
   @override
-  ConsumerState<CampaignManagementScreen> createState() => _CampaignManagementScreenState();
+  ConsumerState<CampaignManagementScreen> createState() =>
+      _CampaignManagementScreenState();
 }
 
-class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScreen>
+class _CampaignManagementScreenState
+    extends ConsumerState<CampaignManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
@@ -36,7 +35,8 @@ class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScr
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
       ref.read(campaignsProvider.notifier).loadCampaigns();
     }
   }
@@ -164,9 +164,15 @@ class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScr
   }
 
   Widget _buildQuickStats(List<Campaign> campaigns, ThemeData theme) {
-    final activeCampaigns = campaigns.where((c) => c.status == CampaignStatus.active).length;
-    final draftCampaigns = campaigns.where((c) => c.status == CampaignStatus.draft).length;
-    final completedCampaigns = campaigns.where((c) => c.status == CampaignStatus.completed).length;
+    final activeCampaigns = campaigns
+        .where((c) => c.status == CampaignStatus.active)
+        .length;
+    final draftCampaigns = campaigns
+        .where((c) => c.status == CampaignStatus.draft)
+        .length;
+    final completedCampaigns = campaigns
+        .where((c) => c.status == CampaignStatus.completed)
+        .length;
 
     return Container(
       margin: EdgeInsets.all(16.w),
@@ -181,13 +187,23 @@ class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScr
           _buildStatItem('Total', '${campaigns.length}', Icons.campaign, theme),
           _buildStatItem('Active', '$activeCampaigns', Icons.play_arrow, theme),
           _buildStatItem('Draft', '$draftCampaigns', Icons.edit, theme),
-          _buildStatItem('Completed', '$completedCampaigns', Icons.check_circle, theme),
+          _buildStatItem(
+            'Completed',
+            '$completedCampaigns',
+            Icons.check_circle,
+            theme,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, ThemeData theme) {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    ThemeData theme,
+  ) {
     return Column(
       children: [
         Icon(icon, color: theme.colorScheme.primary),
@@ -198,10 +214,7 @@ class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScr
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall,
-        ),
+        Text(label, style: theme.textTheme.bodySmall),
       ],
     );
   }
@@ -331,7 +344,9 @@ class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScr
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Campaign'),
-        content: const Text('Are you sure you want to delete this campaign? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete this campaign? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -365,8 +380,27 @@ class _CampaignManagementScreenState extends ConsumerState<CampaignManagementScr
   }
 }
 
-// Provider definitions (these would typically be in a separate file)
-final campaignsProvider = StateNotifierProvider<CampaignsNotifier, CampaignsState>((ref) {
-  // This would be properly injected with dependencies
-  throw UnimplementedError('Provider not properly configured');
-});
+// Provider definitions
+final campaignsProvider =
+    StateNotifierProvider<CampaignsNotifier, CampaignsState>((ref) {
+      final getCampaigns = ref.watch(getCampaignsProvider);
+      final deleteCampaign = ref.watch(deleteCampaignProvider);
+      final createCampaign = ref.watch(createCampaignProvider);
+      final updateCampaign = ref.watch(updateCampaignProvider);
+      final launchCampaign = ref.watch(launchCampaignProvider);
+      final pauseCampaign = ref.watch(pauseCampaignProvider);
+      final getCampaignStats = ref.watch(getCampaignStatsProvider);
+
+      final estimateAudience = ref.watch(estimateAudienceProvider);
+
+      return CampaignsNotifier(
+        getCampaignStats: getCampaignStats,
+        estimateAudience: estimateAudience,
+        getCampaigns: getCampaigns,
+        createCampaign: createCampaign,
+        updateCampaign: updateCampaign,
+        launchCampaign: launchCampaign,
+        pauseCampaign: pauseCampaign,
+        deleteCampaign: deleteCampaign,
+      );
+    });

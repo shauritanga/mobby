@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobby/features/notifications/notifications_feature.dart';
 import '../../domain/entities/template.dart';
 import '../providers/templates_provider.dart';
 
@@ -8,7 +9,8 @@ class TemplateFilterSheet extends ConsumerStatefulWidget {
   const TemplateFilterSheet({super.key});
 
   @override
-  ConsumerState<TemplateFilterSheet> createState() => _TemplateFilterSheetState();
+  ConsumerState<TemplateFilterSheet> createState() =>
+      _TemplateFilterSheetState();
 }
 
 class _TemplateFilterSheetState extends ConsumerState<TemplateFilterSheet> {
@@ -224,11 +226,9 @@ class _TemplateFilterSheetState extends ConsumerState<TemplateFilterSheet> {
       _isActive = null;
       _searchQuery = '';
     });
-    
-    ref.read(templatesProvider.notifier).updateFilters(
-      const TemplateFilters(),
-    );
-    
+
+    ref.read(templatesProvider.notifier).updateFilters(const TemplateFilters());
+
     Navigator.of(context).pop();
   }
 
@@ -239,9 +239,9 @@ class _TemplateFilterSheetState extends ConsumerState<TemplateFilterSheet> {
       isActive: _isActive,
       searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
     );
-    
+
     ref.read(templatesProvider.notifier).updateFilters(filters);
-    
+
     Navigator.of(context).pop();
   }
 }

@@ -336,23 +336,22 @@ class CampaignsRepositoryImpl implements CampaignsRepository {
 
   @override
   Stream<Campaign> watchCampaign(String campaignId) {
-    // This would require implementing real-time listeners
-    throw UnimplementedError('Real-time campaign watching not implemented yet');
+    return remoteDataSource
+        .watchCampaign(campaignId)
+        .map((model) => model.toEntity());
   }
 
   @override
   Stream<List<Campaign>> watchCampaigns() {
-    // This would require implementing real-time listeners
-    throw UnimplementedError(
-      'Real-time campaigns watching not implemented yet',
+    return remoteDataSource.watchCampaigns().map(
+      (campaigns) => campaigns.map((model) => model.toEntity()).toList(),
     );
   }
 
   @override
   Stream<CampaignStats> watchCampaignStats(String campaignId) {
-    // This would require implementing real-time listeners
-    throw UnimplementedError(
-      'Real-time campaign stats watching not implemented yet',
-    );
+    return remoteDataSource
+        .watchCampaignStats(campaignId)
+        .map((stats) => stats); // CampaignStatsModel extends CampaignStats
   }
 }

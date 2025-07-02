@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-class AuthButton extends StatelessWidget {
+class AuthButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -8,7 +9,7 @@ class AuthButton extends StatelessWidget {
   final Color? backgroundColor;
   final Color? textColor;
   final double? width;
-  final double height;
+  final double? height;
 
   const AuthButton({
     super.key,
@@ -19,42 +20,85 @@ class AuthButton extends StatelessWidget {
     this.backgroundColor,
     this.textColor,
     this.width,
-    this.height = 56,
+    this.height,
   });
 
   @override
+  State<AuthButton> createState() => _AuthButtonState();
+}
+
+class _AuthButtonState extends State<AuthButton> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    _controller.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    _controller.reverse();
+  }
+
+  void _handleTapCancel() {
+    _controller.reverse();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (isOutlined) {
+    if (widget.isOutlined) {
       return SizedBox(
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height ?? 56.h,
         child: OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
+          onPressed: widget.isLoading ? null : widget.onPressed,
           style: OutlinedButton.styleFrom(
             side: BorderSide(
-              color: backgroundColor ?? Theme.of(context).primaryColor,
+              color: widget.backgroundColor ?? Theme.of(context).primaryColor,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
           ),
-          child: isLoading
+          child: widget.isLoading
               ? SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 20.w,
+                  height: 20.h,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      textColor ?? Theme.of(context).primaryColor,
+                      widget.textColor ?? Theme.of(context).primaryColor,
                     ),
                   ),
                 )
               : Text(
-                  text,
+                  widget.text,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: textColor ?? Theme.of(context).primaryColor,
+                    fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                    color: widget.textColor ?? Theme.of(context).primaryColor,
                   ),
                 ),
         ),
@@ -62,35 +106,43 @@ class AuthButton extends StatelessWidget {
     }
 
     return SizedBox(
-      width: width,
-      height: height,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+      width: widget.width,
+      height: widget.height ?? 56.h,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: GestureDetector(
+          onTapDown: _handleTapDown,
+          onTapUp: _handleTapUp,
+          onTapCancel: _handleTapCancel,
+          child: ElevatedButton(
+        onPressed: widget.isLoading ? null : widget.onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
-          foregroundColor: textColor ?? Colors.white,
+          backgroundColor: widget.backgroundColor ?? Theme.of(context).colorScheme.primary,
+          foregroundColor: widget.textColor ?? Theme.of(context).colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.r),
           ),
           elevation: 0,
+          padding: EdgeInsets.symmetric(vertical: 16.h),
         ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
+        child: widget.isLoading
+            ? SizedBox(
+                width: 20.w,
+                height: 20.h,
+                child: const CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
             : Text(
-                text,
-                style: const TextStyle(
-                  fontSize: 16,
+                widget.text,
+                style: TextStyle(
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
       ),
+    )),
     );
   }
 }

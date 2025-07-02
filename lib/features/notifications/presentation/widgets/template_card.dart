@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/template.dart';
 
 class TemplateCard extends StatelessWidget {
@@ -45,7 +46,8 @@ class TemplateCard extends StatelessWidget {
                     Icon(
                       Icons.star,
                       size: 16.w,
-                      color: Colors.amber,
+                      color: AppTheme
+                          .warningColor, // Warning orange from brand colors
                     ),
                   if (!template.isActive)
                     Icon(
@@ -83,8 +85,14 @@ class TemplateCard extends StatelessWidget {
                       const PopupMenuItem(
                         value: 'delete',
                         child: ListTile(
-                          leading: Icon(Icons.delete, color: Colors.red),
-                          title: Text('Delete', style: TextStyle(color: Colors.red)),
+                          leading: Icon(
+                            Icons.delete,
+                            color: AppTheme.errorColor,
+                          ),
+                          title: Text(
+                            'Delete',
+                            style: TextStyle(color: AppTheme.errorColor),
+                          ),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -220,19 +228,19 @@ class TemplateCard extends StatelessWidget {
 
     switch (template.type) {
       case TemplateType.push:
-        color = Colors.blue;
+        color = theme.colorScheme.primary;
         icon = Icons.notifications;
         break;
       case TemplateType.email:
-        color = Colors.green;
+        color = AppTheme.secondaryColor; // Success green from brand colors
         icon = Icons.email;
         break;
       case TemplateType.sms:
-        color = Colors.orange;
+        color = AppTheme.warningColor; // Warning orange from brand colors
         icon = Icons.sms;
         break;
       case TemplateType.inApp:
-        color = Colors.purple;
+        color = theme.colorScheme.tertiary;
         icon = Icons.app_registration;
         break;
     }
@@ -266,16 +274,16 @@ class TemplateCard extends StatelessWidget {
 
     switch (template.category) {
       case TemplateCategory.transactional:
-        color = Colors.teal;
+        color = AppTheme.successColor; // Success green from brand colors
         break;
       case TemplateCategory.marketing:
-        color = Colors.pink;
+        color = theme.colorScheme.secondary;
         break;
       case TemplateCategory.system:
-        color = Colors.grey;
+        color = theme.colorScheme.onSurfaceVariant;
         break;
       case TemplateCategory.reminder:
-        color = Colors.amber;
+        color = AppTheme.warningColor; // Warning orange from brand colors
         break;
     }
 

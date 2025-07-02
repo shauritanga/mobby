@@ -163,16 +163,14 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
 
   @override
   Stream<Notification> watchNotifications(String userId) {
-    // This would require implementing real-time listeners
-    // For now, we'll throw an unimplemented error
-    throw UnimplementedError('Real-time notifications not implemented yet');
+    return remoteDataSource.watchNotifications(userId).map(
+          (model) => model.toEntity(),
+        );
   }
 
   @override
   Stream<int> watchUnreadCount(String userId) {
-    // This would require implementing real-time listeners
-    // For now, we'll throw an unimplemented error
-    throw UnimplementedError('Real-time unread count not implemented yet');
+    return remoteDataSource.watchUnreadCount(userId);
   }
 
   @override
