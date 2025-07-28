@@ -18,6 +18,9 @@ import '../../features/auth/domain/usecases/verify_otp_usecase.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/vehicles/presentation/screens/vehicle_list_screen.dart';
 import '../../features/vehicles/presentation/screens/add_edit_vehicle_screen.dart';
+import '../../features/products/presentation/screens/product_list_screen.dart';
+import '../../features/products/presentation/screens/product_detail_screen.dart';
+
 import '../../features/vehicles/presentation/screens/vehicle_details_screen.dart';
 import '../../features/latra/presentation/screens/latra_main_screen.dart';
 import '../../features/latra/presentation/screens/latra_registration_screen.dart';
@@ -118,15 +121,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/products',
                 name: 'products',
-                builder: (context, state) =>
-                    const PlaceholderScreen(title: 'Products'),
+                builder: (context, state) => const ProductListScreen(),
                 routes: [
                   GoRoute(
                     path: '/:productId',
                     name: 'product-details',
                     builder: (context, state) {
                       final productId = state.pathParameters['productId']!;
-                      return PlaceholderScreen(title: 'Product $productId');
+                      return ProductDetailScreen(productId: productId);
                     },
                   ),
                 ],

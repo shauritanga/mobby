@@ -1,16 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/product.dart';
-import 'product_providers.dart';
+import 'product_providers.dart' as products;
 
-// Simple mock providers for user-specific product data
+// User-specific product data providers
 final wishlistProductsProvider = FutureProvider.family<List<Product>, String>((
   ref,
   userId,
 ) async {
-  final products = ref.watch(mockProductsProvider);
-  await Future.delayed(const Duration(milliseconds: 300));
-  // Return first product as mock wishlist item
-  return products.take(1).toList();
+  final repository = ref.watch(products.productRepositoryProvider);
+  return await repository.getWishlistProducts(userId);
 });
 
 final isInWishlistProvider =
@@ -18,36 +16,126 @@ final isInWishlistProvider =
       ref,
       params,
     ) async {
-      await Future.delayed(const Duration(milliseconds: 100));
-      // Mock: return true for first product
-      return params.productId == '1';
+      final repository = ref.watch(products.productRepositoryProvider);
+      return await repository.isInWishlist(params.userId, params.productId);
     });
 
 final recentlyViewedProductsProvider =
     FutureProvider.family<List<Product>, String>((ref, userId) async {
-      final products = ref.watch(mockProductsProvider);
-      await Future.delayed(const Duration(milliseconds: 300));
-      // Return all products as recently viewed
-      return products;
+      final repository = ref.watch(products.productRepositoryProvider);
+      return await repository.getRecentlyViewedProducts(userId);
     });
 
-// Simple wishlist state notifier
+// User's search history
+final userSearchHistoryProvider = FutureProvider<List<Product>>((ref) async {
+  final repository = ref.watch(products.productRepositoryProvider);
+  return await repository.getSearchHistory();
+});
+
+// Check if products are in stock
+final productsAvailabilityProvider =
+    FutureProvider.family<Map<String, bool>, List<String>>((
+      ref,
+      productIds,
+    ) async {
+      final repository = ref.watch(products.productRepositoryProvider);
+      return await repository.checkProductsAvailability(productIds);
+    });
+
+// Get products stock levels
+final productsStockProvider =
+    FutureProvider.family<Map<String, int>, List<String>>((
+      ref,
+      productIds,
+    ) async {
+      final repository = ref.watch(products.productRepositoryProvider);
+      return await repository.getProductsStock(productIds);
+    });
+
+// Get multiple products by IDs (useful for cart, wishlist display)
+final productsByIdsProvider =
+    FutureProvider.family<List<Product>, List<String>>((ref, productIds) async {
+      final repository = ref.watch(products.productRepositoryProvider);
+      return await repository.getProductsByIds(productIds);
+    });
+
+// User action providers for wishlist operations
+final addToWishlistProvider =
+    Provider.family<Future<void>, ({String userId, String productId})>((
+      ref,
+      params,
+    ) {
+      final repository = ref.watch(products.productRepositoryProvider);
+      return repository.addToWishlist(params.userId, params.productId);
+    });
+
+final removeFromWishlistProvider =
+    Provider.family<Future<void>, ({String userId, String productId})>((
+      ref,
+      params,
+    ) {
+      final repository = ref.watch(products.productRepositoryProvider);
+      return repository.removeFromWishlist(params.userId, params.productId);
+    });
+
+// User action providers for recently viewed
+final addToRecentlyViewedProvider =
+    Provider.family<Future<void>, ({String userId, String productId})>((
+      ref,
+      params,
+    ) {
+      final repository = ref.watch(products.productRepositoryProvider);
+      return repository.addToRecentlyViewed(params.userId, params.productId);
+    });
+
+// Enhanced wishlist state notifier with repository integration
 class WishlistManager extends StateNotifier<Set<String>> {
-  WishlistManager() : super(<String>{});
+  final Ref ref;
 
-  void addToWishlist(String productId) {
+  WishlistManager(this.ref) : super(<String>{});
+
+  Future<void> addToWishlist(String userId, String productId) async {
+    // Optimistically update local state
     state = {...state, productId};
+
+    try {
+      // Update repository
+      await ref.read(
+        addToWishlistProvider((userId: userId, productId: productId)),
+      );
+      // Invalidate wishlist provider to refresh data
+      ref.invalidate(wishlistProductsProvider(userId));
+    } catch (e) {
+      // Revert optimistic update on error
+      state = state.where((id) => id != productId).toSet();
+      rethrow;
+    }
   }
 
-  void removeFromWishlist(String productId) {
+  Future<void> removeFromWishlist(String userId, String productId) async {
+    // Optimistically update local state
+    final previousState = state;
     state = state.where((id) => id != productId).toSet();
+
+    try {
+      // Update repository
+      await ref.read(
+        removeFromWishlistProvider((userId: userId, productId: productId)),
+      );
+      // Invalidate wishlist provider to refresh data
+      ref.invalidate(wishlistProductsProvider(userId));
+    } catch (e) {
+      // Revert optimistic update on error
+      state = previousState;
+      rethrow;
+    }
   }
 
-  void toggleWishlist(String productId) {
+  Future<void> toggleWishlist(String userId, String productId) async {
     if (state.contains(productId)) {
-      removeFromWishlist(productId);
+      await removeFromWishlist(userId, productId);
     } else {
-      addToWishlist(productId);
+      await addToWishlist(userId, productId);
     }
   }
 
@@ -58,11 +146,41 @@ class WishlistManager extends StateNotifier<Set<String>> {
   void clearWishlist() {
     state = <String>{};
   }
+
+  // Backward compatible methods for local state management
+  void addToWishlistLocal(String productId) {
+    state = {...state, productId};
+  }
+
+  void removeFromWishlistLocal(String productId) {
+    state = state.where((id) => id != productId).toSet();
+  }
+
+  void toggleWishlistLocal(String productId) {
+    if (state.contains(productId)) {
+      removeFromWishlistLocal(productId);
+    } else {
+      addToWishlistLocal(productId);
+    }
+  }
+
+  // Load wishlist from repository
+  Future<void> loadWishlist(String userId) async {
+    try {
+      final wishlistProducts = await ref.read(
+        wishlistProductsProvider(userId).future,
+      );
+      state = wishlistProducts.map((product) => product.id).toSet();
+    } catch (e) {
+      // Handle error silently or log it
+      state = <String>{};
+    }
+  }
 }
 
 final wishlistManagerProvider =
     StateNotifierProvider<WishlistManager, Set<String>>((ref) {
-      return WishlistManager();
+      return WishlistManager(ref);
     });
 
 // Simple recently viewed state notifier
@@ -160,9 +278,17 @@ extension UserProductProvidersExtension on WidgetRef {
     read(userReviewManagerProvider.notifier).clearUserReviews();
   }
 
-  /// Add product to wishlist with optimistic updates
+  /// Add product to wishlist with optimistic updates (backward compatible)
   void toggleWishlist(String productId) {
-    read(wishlistManagerProvider.notifier).toggleWishlist(productId);
+    // Use local state management for backward compatibility
+    read(wishlistManagerProvider.notifier).toggleWishlistLocal(productId);
+  }
+
+  /// Add product to wishlist with repository integration
+  Future<void> toggleWishlistWithUser(String userId, String productId) async {
+    await read(
+      wishlistManagerProvider.notifier,
+    ).toggleWishlist(userId, productId);
   }
 
   /// Track product view with analytics

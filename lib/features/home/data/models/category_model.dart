@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/category.dart';
 
-part 'category_model.g.dart';
-
-@JsonSerializable()
 class CategoryModel extends Category {
   const CategoryModel({
     required super.id,
@@ -20,10 +16,44 @@ class CategoryModel extends Category {
     required super.updatedAt,
   });
 
-  factory CategoryModel.fromJson(Map<String, dynamic> json) =>
-      _$CategoryModelFromJson(json);
+  factory CategoryModel.fromMap(Map<String, dynamic> map) {
+    return CategoryModel(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      description: map['description'] as String,
+      iconName: map['iconName'] as String,
+      colorHex: map['colorHex'] as String,
+      imageUrl: map['imageUrl'] as String?,
+      parentId: map['parentId'] as String?,
+      sortOrder: map['sortOrder'] as int,
+      isActive: map['isActive'] as bool,
+      productCount: map['productCount'] as int,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      updatedAt: DateTime.parse(map['updatedAt'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$CategoryModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'iconName': iconName,
+      'colorHex': colorHex,
+      'imageUrl': imageUrl,
+      'parentId': parentId,
+      'sortOrder': sortOrder,
+      'isActive': isActive,
+      'productCount': productCount,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory CategoryModel.fromJson(Map<String, dynamic> json) =>
+      CategoryModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory CategoryModel.fromEntity(Category category) {
     return CategoryModel(

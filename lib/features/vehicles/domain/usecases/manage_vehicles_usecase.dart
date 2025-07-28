@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/vehicle_repository.dart';
 import '../entities/vehicle.dart';
@@ -52,12 +52,14 @@ class CreateVehicleUseCase implements UseCase<Vehicle, CreateVehicleParams> {
     }
 
     // Validate plate number uniqueness
-    final plateValidation = await repository.validatePlateNumber(params.plateNumber);
+    final plateValidation = await repository.validatePlateNumber(
+      params.plateNumber,
+    );
     final isPlateValid = plateValidation.fold(
       (failure) => false,
       (isValid) => isValid,
     );
-    
+
     if (!isPlateValid) {
       return const Left(ValidationFailure('Plate number already exists'));
     }
@@ -102,59 +104,60 @@ class UpdateVehicleUseCase implements UseCase<Vehicle, UpdateVehicleParams> {
   @override
   Future<Either<Failure, Vehicle>> call(UpdateVehicleParams params) async {
     // Get existing vehicle
-    final existingVehicleResult = await repository.getVehicleById(params.vehicleId);
-    
-    return existingVehicleResult.fold(
-      (failure) => Left(failure),
-      (existingVehicle) async {
-        if (existingVehicle == null) {
-          return const Left(NotFoundFailure('Vehicle not found'));
-        }
+    final existingVehicleResult = await repository.getVehicleById(
+      params.vehicleId,
+    );
 
-        // Validate plate number if changed
-        if (params.plateNumber != null && 
-            params.plateNumber != existingVehicle.plateNumber) {
-          final plateValidation = await repository.validatePlateNumber(
-            params.plateNumber!,
-            excludeVehicleId: params.vehicleId,
-          );
-          final isPlateValid = plateValidation.fold(
-            (failure) => false,
-            (isValid) => isValid,
-          );
-          
-          if (!isPlateValid) {
-            return const Left(ValidationFailure('Plate number already exists'));
-          }
-        }
+    return existingVehicleResult.fold((failure) => Left(failure), (
+      existingVehicle,
+    ) async {
+      if (existingVehicle == null) {
+        return const Left(NotFoundFailure('Vehicle not found'));
+      }
 
-        // Update vehicle with new data
-        final updatedVehicle = existingVehicle.copyWith(
-          make: params.make?.trim(),
-          model: params.model?.trim(),
-          year: params.year,
-          color: params.color?.trim(),
-          plateNumber: params.plateNumber?.trim().toUpperCase(),
-          engineNumber: params.engineNumber?.trim(),
-          chassisNumber: params.chassisNumber?.trim(),
-          type: params.type,
-          fuelType: params.fuelType,
-          transmission: params.transmission,
-          mileage: params.mileage,
-          vin: params.vin?.trim(),
-          registrationNumber: params.registrationNumber?.trim(),
-          registrationDate: params.registrationDate,
-          insuranceExpiry: params.insuranceExpiry,
-          inspectionExpiry: params.inspectionExpiry,
-          imageUrls: params.imageUrls,
-          specifications: params.specifications,
-          status: params.status,
-          updatedAt: DateTime.now(),
+      // Validate plate number if changed
+      if (params.plateNumber != null &&
+          params.plateNumber != existingVehicle.plateNumber) {
+        final plateValidation = await repository.validatePlateNumber(
+          params.plateNumber!,
+          excludeVehicleId: params.vehicleId,
+        );
+        final isPlateValid = plateValidation.fold(
+          (failure) => false,
+          (isValid) => isValid,
         );
 
-        return await repository.updateVehicle(updatedVehicle);
-      },
-    );
+        if (!isPlateValid) {
+          return const Left(ValidationFailure('Plate number already exists'));
+        }
+      }
+
+      // Update vehicle with new data
+      final updatedVehicle = existingVehicle.copyWith(
+        make: params.make?.trim(),
+        model: params.model?.trim(),
+        year: params.year,
+        color: params.color?.trim(),
+        plateNumber: params.plateNumber?.trim().toUpperCase(),
+        engineNumber: params.engineNumber?.trim(),
+        chassisNumber: params.chassisNumber?.trim(),
+        type: params.type,
+        fuelType: params.fuelType,
+        transmission: params.transmission,
+        mileage: params.mileage,
+        vin: params.vin?.trim(),
+        registrationNumber: params.registrationNumber?.trim(),
+        registrationDate: params.registrationDate,
+        insuranceExpiry: params.insuranceExpiry,
+        inspectionExpiry: params.inspectionExpiry,
+        imageUrls: params.imageUrls,
+        specifications: params.specifications,
+        status: params.status,
+        updatedAt: DateTime.now(),
+      );
+
+      return await repository.updateVehicle(updatedVehicle);
+    });
   }
 }
 
@@ -171,13 +174,16 @@ class DeleteVehicleUseCase implements UseCase<void, String> {
 }
 
 /// Search Vehicles Use Case
-class SearchVehiclesUseCase implements UseCase<List<Vehicle>, SearchVehiclesParams> {
+class SearchVehiclesUseCase
+    implements UseCase<List<Vehicle>, SearchVehiclesParams> {
   final VehicleRepository repository;
 
   SearchVehiclesUseCase(this.repository);
 
   @override
-  Future<Either<Failure, List<Vehicle>>> call(SearchVehiclesParams params) async {
+  Future<Either<Failure, List<Vehicle>>> call(
+    SearchVehiclesParams params,
+  ) async {
     return await repository.searchVehicles(params.userId, params.query);
   }
 }
@@ -279,8 +285,5 @@ class SearchVehiclesParams {
   final String userId;
   final String query;
 
-  SearchVehiclesParams({
-    required this.userId,
-    required this.query,
-  });
+  SearchVehiclesParams({required this.userId, required this.query});
 }

@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
-import '../../../../core/errors/exceptions.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/auth_token.dart';
@@ -30,13 +30,13 @@ class AuthRepositoryImpl implements AuthRepository {
           email: email,
           password: password,
         );
-        
+
         // Cache user locally
         await localDataSource.cacheUser(userModel);
-        
+
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -62,13 +62,13 @@ class AuthRepositoryImpl implements AuthRepository {
           displayName: displayName,
           phoneNumber: phoneNumber,
         );
-        
+
         // Cache user locally
         await localDataSource.cacheUser(userModel);
-        
+
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -90,13 +90,13 @@ class AuthRepositoryImpl implements AuthRepository {
           phoneNumber: phoneNumber,
           verificationCode: verificationCode,
         );
-        
+
         // Cache user locally
         await localDataSource.cacheUser(userModel);
-        
+
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -116,7 +116,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await remoteDataSource.sendPasswordResetEmail(email: email);
         return const Right(null);
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -134,7 +134,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await remoteDataSource.sendEmailVerification();
         return const Right(null);
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -154,7 +154,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await remoteDataSource.sendPhoneVerification(phoneNumber: phoneNumber);
         return const Right(null);
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -174,13 +174,13 @@ class AuthRepositoryImpl implements AuthRepository {
         final userModel = await remoteDataSource.verifyPhoneNumber(
           verificationCode: verificationCode,
         );
-        
+
         // Cache user locally
         await localDataSource.cacheUser(userModel);
-        
+
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -200,13 +200,13 @@ class AuthRepositoryImpl implements AuthRepository {
         final userModel = await remoteDataSource.verifyEmailWithCode(
           verificationCode: verificationCode,
         );
-        
+
         // Cache user locally
         await localDataSource.cacheUser(userModel);
-        
+
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -224,14 +224,14 @@ class AuthRepositoryImpl implements AuthRepository {
       if (await networkInfo.isConnected) {
         await remoteDataSource.signOut();
       }
-      
+
       // Clear local cache
       await localDataSource.clearCachedUser();
       await localDataSource.clearCachedToken();
-      
+
       return const Right(null);
     } on AuthenticationException catch (e) {
-      return Left(AuthenticationFailure(e.message));
+      return Left(AuthFailure(e.message));
     } on CacheException catch (e) {
       return Left(CacheFailure(e.message));
     } catch (e) {
@@ -255,7 +255,7 @@ class AuthRepositoryImpl implements AuthRepository {
           // If remote fails, fall back to cache
         }
       }
-      
+
       // Get from cache
       final cachedUser = await localDataSource.getCachedUser();
       return Right(cachedUser?.toEntity());
@@ -298,7 +298,7 @@ class AuthRepositoryImpl implements AuthRepository {
           // If remote fails, fall back to cache
         }
       }
-      
+
       // Get from cache
       final cachedToken = await localDataSource.getCachedToken();
       return Right(cachedToken?.toEntity());
@@ -314,13 +314,13 @@ class AuthRepositoryImpl implements AuthRepository {
     if (await networkInfo.isConnected) {
       try {
         final tokenModel = await remoteDataSource.refreshToken();
-        
+
         // Cache the new token
         await localDataSource.cacheToken(tokenModel);
-        
+
         return Right(tokenModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -342,13 +342,13 @@ class AuthRepositoryImpl implements AuthRepository {
           displayName: displayName,
           photoUrl: photoUrl,
         );
-        
+
         // Cache updated user
         await localDataSource.cacheUser(userModel);
-        
+
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -372,7 +372,7 @@ class AuthRepositoryImpl implements AuthRepository {
         );
         return const Right(null);
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -388,14 +388,14 @@ class AuthRepositoryImpl implements AuthRepository {
     if (await networkInfo.isConnected) {
       try {
         await remoteDataSource.deleteAccount();
-        
+
         // Clear local cache
         await localDataSource.clearCachedUser();
         await localDataSource.clearCachedToken();
-        
+
         return const Right(null);
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {

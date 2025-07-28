@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/brand.dart';
 
-part 'brand_model.g.dart';
-
-@JsonSerializable()
 class BrandModel extends Brand {
   const BrandModel({
     required super.id,
@@ -20,10 +16,44 @@ class BrandModel extends Brand {
     required super.updatedAt,
   });
 
-  factory BrandModel.fromJson(Map<String, dynamic> json) =>
-      _$BrandModelFromJson(json);
+  factory BrandModel.fromMap(Map<String, dynamic> map) {
+    return BrandModel(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      description: map['description'] as String,
+      logoUrl: map['logoUrl'] as String,
+      websiteUrl: map['websiteUrl'] as String?,
+      countryOfOrigin: map['countryOfOrigin'] as String,
+      isActive: map['isActive'] as bool,
+      isFeatured: map['isFeatured'] as bool,
+      productCount: map['productCount'] as int,
+      averageRating: (map['averageRating'] as num).toDouble(),
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      updatedAt: DateTime.parse(map['updatedAt'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$BrandModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'logoUrl': logoUrl,
+      'websiteUrl': websiteUrl,
+      'countryOfOrigin': countryOfOrigin,
+      'isActive': isActive,
+      'isFeatured': isFeatured,
+      'productCount': productCount,
+      'averageRating': averageRating,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory BrandModel.fromJson(Map<String, dynamic> json) =>
+      BrandModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory BrandModel.fromEntity(Brand brand) {
     return BrandModel(

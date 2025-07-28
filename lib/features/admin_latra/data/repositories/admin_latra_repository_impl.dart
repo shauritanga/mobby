@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../latra/domain/entities/latra_application.dart';
 import '../../../latra/domain/entities/latra_document.dart';
 import '../../domain/entities/verification_status.dart';

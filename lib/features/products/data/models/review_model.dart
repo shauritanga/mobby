@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/review.dart';
 
-part 'review_model.g.dart';
-
-@JsonSerializable()
 class ReviewModel extends Review {
   const ReviewModel({
     required super.id,
@@ -23,10 +19,50 @@ class ReviewModel extends Review {
     required super.updatedAt,
   });
 
-  factory ReviewModel.fromJson(Map<String, dynamic> json) =>
-      _$ReviewModelFromJson(json);
+  factory ReviewModel.fromMap(Map<String, dynamic> map) {
+    return ReviewModel(
+      id: map['id'] as String,
+      productId: map['productId'] as String,
+      userId: map['userId'] as String,
+      userName: map['userName'] as String,
+      userAvatarUrl: map['userAvatarUrl'] as String?,
+      rating: (map['rating'] as num).toDouble(),
+      title: map['title'] as String,
+      comment: map['comment'] as String,
+      imageUrls: List<String>.from(map['imageUrls'] as List),
+      isVerifiedPurchase: map['isVerifiedPurchase'] as bool,
+      isHelpful: map['isHelpful'] as bool,
+      helpfulCount: map['helpfulCount'] as int,
+      notHelpfulCount: map['notHelpfulCount'] as int,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      updatedAt: DateTime.parse(map['updatedAt'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$ReviewModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'productId': productId,
+      'userId': userId,
+      'userName': userName,
+      'userAvatarUrl': userAvatarUrl,
+      'rating': rating,
+      'title': title,
+      'comment': comment,
+      'imageUrls': imageUrls,
+      'isVerifiedPurchase': isVerifiedPurchase,
+      'isHelpful': isHelpful,
+      'helpfulCount': helpfulCount,
+      'notHelpfulCount': notHelpfulCount,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory ReviewModel.fromJson(Map<String, dynamic> json) =>
+      ReviewModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory ReviewModel.fromEntity(Review review) {
     return ReviewModel(

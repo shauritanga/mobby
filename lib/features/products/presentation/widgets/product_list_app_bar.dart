@@ -23,7 +23,8 @@ class ProductListAppBar extends StatefulWidget implements PreferredSizeWidget {
   State<ProductListAppBar> createState() => _ProductListAppBarState();
 
   @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight + (searchQuery.isNotEmpty ? 60.h : 0));
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (searchQuery.isNotEmpty ? 60.h : 0));
 }
 
 class _ProductListAppBarState extends State<ProductListAppBar> {
@@ -77,22 +78,17 @@ class _ProductListAppBarState extends State<ProductListAppBar> {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: _isSearchExpanded ? null : Text(
-        widget.title,
-        style: TextStyle(
-          fontSize: 18.sp,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      centerTitle: !_isSearchExpanded,
+      title: _isSearchExpanded
+          ? null
+          : Text(
+              widget.title,
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
+            ),
+
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       elevation: 0,
       scrolledUnderElevation: 1,
       surfaceTintColor: Theme.of(context).colorScheme.surface,
-      leading: _isSearchExpanded ? null : IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
       actions: [
         if (_isSearchExpanded) ...[
           // Expanded search bar
@@ -115,10 +111,7 @@ class _ProductListAppBarState extends State<ProductListAppBar> {
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(
-                            Icons.clear,
-                            size: 20.sp,
-                          ),
+                          icon: Icon(Icons.clear, size: 20.sp),
                           onPressed: () {
                             _searchController.clear();
                             widget.onSearchClear();
@@ -160,12 +153,9 @@ class _ProductListAppBarState extends State<ProductListAppBar> {
               ),
             ),
           ),
-          
+
           // Close search button
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _toggleSearch,
-          ),
+          IconButton(icon: const Icon(Icons.close), onPressed: _toggleSearch),
         ] else ...[
           // Search button
           IconButton(
@@ -173,16 +163,14 @@ class _ProductListAppBarState extends State<ProductListAppBar> {
             onPressed: _toggleSearch,
             tooltip: 'Search products',
           ),
-          
+
           // View toggle button
           IconButton(
-            icon: Icon(
-              widget.isGridView ? Icons.view_list : Icons.grid_view,
-            ),
+            icon: Icon(widget.isGridView ? Icons.view_list : Icons.grid_view),
             onPressed: widget.onToggleView,
             tooltip: widget.isGridView ? 'List view' : 'Grid view',
           ),
-          
+
           // More options
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),

@@ -17,20 +17,20 @@ class AppTheme {
       primary: primaryColor,
       secondary: secondaryColor,
       error: errorColor,
-      // FlexColorScheme recommended surface mode for light theme
-      // Higher surface blend, lower scaffold blend for better hierarchy
-      surfaceMode: FlexSurfaceMode.highSurfaceLowScaffold,
-      blendLevel: 10, // FlexColorScheme recommended blend level for light mode
+      // Optimized surface mode for better readability with blue primary
+      // Level surface mode provides better contrast and readability
+      surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
+      blendLevel: 5, // Reduced blend level for better contrast and readability
       subThemesData: FlexSubThemesData(
-        // Enhanced blend settings following FlexColorScheme patterns
-        blendOnLevel: 10, // Reduced for light mode following best practices
-        blendOnColors:
-            false, // Keep false for better readability on primary colors
+        // Optimized blend settings for better contrast
+        blendOnLevel: 5, // Reduced for better text contrast on colored surfaces
+        blendOnColors: false, // Keep false for maximum readability
         useMaterial3Typography: true,
-        useM2StyleDividerInM3: false, // Use M3 style dividers
+        useM2StyleDividerInM3: false,
         // Interaction effects for better Material 3 feel
         interactionEffects: true,
         tintedDisabledControls: true,
+        // Enhanced contrast settings for better readability
         // Global border radius for consistent design
         defaultRadius: 12.r,
         // Button styling
@@ -80,8 +80,8 @@ class AppTheme {
         keepSecondary: true,
         keepTertiary: true,
       ),
-      // Use Material 3 tones for better color harmony
-      tones: FlexTones.material(Brightness.light),
+      // Use high contrast tones for better readability with blue primary
+      tones: FlexTones.highContrast(Brightness.light),
       visualDensity: FlexColorScheme.comfortablePlatformDensity,
       useMaterial3: true,
       swapLegacyOnMaterial3: true,
@@ -107,16 +107,14 @@ class AppTheme {
       secondaryLightRef:
           secondaryColor, // Reference to light theme secondary for fixed colors
       error: errorColor,
-      // FlexColorScheme recommended surface mode for dark theme
-      // Inverted pattern: higher scaffold blend, lower surface blend
-      surfaceMode: FlexSurfaceMode.highScaffoldLowSurfaces,
-      blendLevel: 12, // FlexColorScheme recommended blend level for dark mode
+      // Optimized surface mode for dark theme readability
+      // Level surface mode provides better contrast in dark mode
+      surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
+      blendLevel: 8, // Reduced blend level for better contrast in dark mode
       subThemesData: FlexSubThemesData(
-        // Enhanced blend settings following FlexColorScheme patterns for dark mode
-        blendOnLevel:
-            15, // Slightly higher for dark mode following best practices
-        blendOnColors:
-            false, // Keep false for better readability on primary colors
+        // Optimized blend settings for dark mode readability
+        blendOnLevel: 8, // Reduced for better text contrast in dark mode
+        blendOnColors: false, // Keep false for maximum readability
         useMaterial3Typography: true,
         useM2StyleDividerInM3: false, // Use M3 style dividers
         // Interaction effects for better Material 3 feel
@@ -171,8 +169,8 @@ class AppTheme {
         keepSecondary: true,
         keepTertiary: true,
       ),
-      // Use Material 3 tones for better color harmony
-      tones: FlexTones.material(Brightness.dark),
+      // Use high contrast tones for better readability in dark mode
+      tones: FlexTones.highContrast(Brightness.dark),
       visualDensity: FlexColorScheme.comfortablePlatformDensity,
       useMaterial3: true,
       swapLegacyOnMaterial3: true,
@@ -187,24 +185,108 @@ class AppTheme {
     );
   }
 
-  // Custom text theme with responsive sizing
+  // Custom text theme with responsive sizing and enhanced contrast
   static TextTheme _buildTextTheme(Brightness brightness) {
+    // Use high contrast colors for better readability
+    final Color textColor = brightness == Brightness.light
+        ? const Color(0xFF000000) // Pure black for light theme
+        : const Color(0xFFFFFFFF); // Pure white for dark theme
+
+    final Color secondaryTextColor = brightness == Brightness.light
+        ? const Color(0xFF424242) // Dark gray for light theme
+        : const Color(0xFFE0E0E0); // Light gray for dark theme
+
     return TextTheme(
-      displayLarge: TextStyle(fontSize: 32.sp, fontWeight: FontWeight.bold),
-      displayMedium: TextStyle(fontSize: 28.sp, fontWeight: FontWeight.bold),
-      displaySmall: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
-      headlineLarge: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w600),
-      headlineMedium: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w600),
-      headlineSmall: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
-      titleLarge: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
-      titleMedium: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
-      titleSmall: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
-      bodyLarge: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.normal),
-      bodyMedium: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.normal),
-      bodySmall: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.normal),
-      labelLarge: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
-      labelMedium: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
-      labelSmall: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w500),
+      displayLarge: TextStyle(
+        fontSize: 32.sp,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+        height: 1.2,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 28.sp,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+        height: 1.2,
+      ),
+      displaySmall: TextStyle(
+        fontSize: 24.sp,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+        height: 1.2,
+      ),
+      headlineLarge: TextStyle(
+        fontSize: 22.sp,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+        height: 1.3,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 20.sp,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+        height: 1.3,
+      ),
+      headlineSmall: TextStyle(
+        fontSize: 18.sp,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+        height: 1.3,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+        height: 1.4,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+        height: 1.4,
+      ),
+      titleSmall: TextStyle(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+        height: 1.4,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.normal,
+        color: textColor,
+        height: 1.5,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.normal,
+        color: textColor,
+        height: 1.5,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.normal,
+        color: secondaryTextColor,
+        height: 1.5,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+        height: 1.4,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+        height: 1.4,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 10.sp,
+        fontWeight: FontWeight.w500,
+        color: secondaryTextColor,
+        height: 1.4,
+      ),
     );
   }
 

@@ -1,13 +1,14 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/verification_status.dart';
 import '../repositories/admin_latra_repository.dart';
 
 /// Get integration statuses use case
-class GetIntegrationStatuses implements UseCase<List<IntegrationStatus>, NoParams> {
+class GetIntegrationStatuses
+    implements UseCase<List<IntegrationStatus>, NoParams> {
   final AdminLATRARepository repository;
 
   const GetIntegrationStatuses(this.repository);
@@ -19,13 +20,16 @@ class GetIntegrationStatuses implements UseCase<List<IntegrationStatus>, NoParam
 }
 
 /// Get integration status use case
-class GetIntegrationStatus implements UseCase<IntegrationStatus?, GetIntegrationStatusParams> {
+class GetIntegrationStatus
+    implements UseCase<IntegrationStatus?, GetIntegrationStatusParams> {
   final AdminLATRARepository repository;
 
   const GetIntegrationStatus(this.repository);
 
   @override
-  Future<Either<Failure, IntegrationStatus?>> call(GetIntegrationStatusParams params) async {
+  Future<Either<Failure, IntegrationStatus?>> call(
+    GetIntegrationStatusParams params,
+  ) async {
     if (params.serviceName.isEmpty) {
       return const Left(ValidationFailure('Service name is required'));
     }
@@ -37,28 +41,31 @@ class GetIntegrationStatus implements UseCase<IntegrationStatus?, GetIntegration
 class GetIntegrationStatusParams extends Equatable {
   final String serviceName;
 
-  const GetIntegrationStatusParams({
-    required this.serviceName,
-  });
+  const GetIntegrationStatusParams({required this.serviceName});
 
   @override
   List<Object?> get props => [serviceName];
 }
 
 /// Update integration status use case
-class UpdateIntegrationStatus implements UseCase<IntegrationStatus, UpdateIntegrationStatusParams> {
+class UpdateIntegrationStatus
+    implements UseCase<IntegrationStatus, UpdateIntegrationStatusParams> {
   final AdminLATRARepository repository;
 
   const UpdateIntegrationStatus(this.repository);
 
   @override
-  Future<Either<Failure, IntegrationStatus>> call(UpdateIntegrationStatusParams params) async {
+  Future<Either<Failure, IntegrationStatus>> call(
+    UpdateIntegrationStatusParams params,
+  ) async {
     if (params.serviceName.isEmpty) {
       return const Left(ValidationFailure('Service name is required'));
     }
 
     if (params.responseTime < 0) {
-      return const Left(ValidationFailure('Response time must be non-negative'));
+      return const Left(
+        ValidationFailure('Response time must be non-negative'),
+      );
     }
 
     return await repository.updateIntegrationStatus(
@@ -87,17 +94,26 @@ class UpdateIntegrationStatusParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [serviceName, health, responseTime, errorMessage, metrics];
+  List<Object?> get props => [
+    serviceName,
+    health,
+    responseTime,
+    errorMessage,
+    metrics,
+  ];
 }
 
 /// Get integration events use case
-class GetIntegrationEvents implements UseCase<List<IntegrationEvent>, GetIntegrationEventsParams> {
+class GetIntegrationEvents
+    implements UseCase<List<IntegrationEvent>, GetIntegrationEventsParams> {
   final AdminLATRARepository repository;
 
   const GetIntegrationEvents(this.repository);
 
   @override
-  Future<Either<Failure, List<IntegrationEvent>>> call(GetIntegrationEventsParams params) async {
+  Future<Either<Failure, List<IntegrationEvent>>> call(
+    GetIntegrationEventsParams params,
+  ) async {
     return await repository.getIntegrationEvents(
       serviceName: params.serviceName,
       type: params.type,
@@ -127,7 +143,14 @@ class GetIntegrationEventsParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [serviceName, type, startDate, endDate, page, limit];
+  List<Object?> get props => [
+    serviceName,
+    type,
+    startDate,
+    endDate,
+    page,
+    limit,
+  ];
 }
 
 /// Add integration event use case
@@ -173,13 +196,16 @@ class AddIntegrationEventParams extends Equatable {
 }
 
 /// Get integration analytics use case
-class GetIntegrationAnalytics implements UseCase<Map<String, dynamic>, GetIntegrationAnalyticsParams> {
+class GetIntegrationAnalytics
+    implements UseCase<Map<String, dynamic>, GetIntegrationAnalyticsParams> {
   final AdminLATRARepository repository;
 
   const GetIntegrationAnalytics(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> call(GetIntegrationAnalyticsParams params) async {
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    GetIntegrationAnalyticsParams params,
+  ) async {
     return await repository.getIntegrationAnalytics(
       startDate: params.startDate,
       endDate: params.endDate,
@@ -191,10 +217,7 @@ class GetIntegrationAnalyticsParams extends Equatable {
   final DateTime? startDate;
   final DateTime? endDate;
 
-  const GetIntegrationAnalyticsParams({
-    this.startDate,
-    this.endDate,
-  });
+  const GetIntegrationAnalyticsParams({this.startDate, this.endDate});
 
   @override
   List<Object?> get props => [startDate, endDate];

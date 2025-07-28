@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../entities/latra_application.dart';
 import '../entities/latra_status.dart';
 import '../entities/latra_document.dart';

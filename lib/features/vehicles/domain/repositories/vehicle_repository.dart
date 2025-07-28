@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../entities/vehicle.dart';
 import '../entities/document.dart';
 import '../entities/maintenance_record.dart';

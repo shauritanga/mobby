@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/product.dart';
 import '../providers/product_providers_setup.dart';
-import '../providers/simple_providers.dart';
 import '../widgets/category_header_section.dart';
 import '../widgets/subcategory_chips.dart';
 import '../widgets/category_filter_bar.dart';
@@ -14,6 +13,7 @@ import '../widgets/product_card.dart';
 import '../widgets/product_loading_grid.dart';
 import '../widgets/product_empty_state.dart';
 import '../widgets/product_error_widget.dart';
+import '../../../home/domain/entities/category.dart' as home;
 
 class CategoryBrowseScreen extends ConsumerStatefulWidget {
   final String categoryId;
@@ -80,12 +80,12 @@ class _CategoryBrowseScreenState extends ConsumerState<CategoryBrowseScreen>
 
   @override
   Widget build(BuildContext context) {
-    final categoryAsync = ref.watch(categoryProvider(widget.categoryId));
+    final categoryAsync = ref.watch(categoryByIdProvider(widget.categoryId));
 
     return Scaffold(
       body: categoryAsync.when(
         data: (category) => category != null
-            ? _buildCategoryContent(category)
+            ? _buildCategoryContent(_convertToProductsCategory(category))
             : _buildCategoryNotFound(),
         loading: () => _buildLoadingScreen(),
         error: (error, stack) => _buildErrorScreen(error),
@@ -93,6 +93,23 @@ class _CategoryBrowseScreenState extends ConsumerState<CategoryBrowseScreen>
       floatingActionButton: _showFloatingActionButton
           ? _buildFloatingActionButton()
           : null,
+    );
+  }
+
+  /// Converts a home Category to a products Category
+  Category _convertToProductsCategory(home.Category homeCategory) {
+    return Category(
+      id: homeCategory.id,
+      name: homeCategory.name,
+      description: homeCategory.description,
+      imageUrl: homeCategory.imageUrl,
+      iconUrl: null, // Home category uses iconName, products uses iconUrl
+      productCount: homeCategory.productCount,
+      subcategories: null, // Will be populated separately if needed
+      parentId: homeCategory.parentId,
+      isActive: homeCategory.isActive,
+      createdAt: homeCategory.createdAt,
+      updatedAt: homeCategory.updatedAt,
     );
   }
 
@@ -281,7 +298,7 @@ class _CategoryBrowseScreenState extends ConsumerState<CategoryBrowseScreen>
       ),
       body: ProductErrorWidget(
         error: error.toString(),
-        onRetry: () => ref.invalidate(categoryProvider(widget.categoryId)),
+        onRetry: () => ref.invalidate(categoryByIdProvider(widget.categoryId)),
         onGoBack: () => Navigator.of(context).pop(),
         customTitle: 'Failed to load category',
       ),

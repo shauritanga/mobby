@@ -1,19 +1,22 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/insurance_partner.dart';
 import '../repositories/admin_insurance_repository.dart';
 
 /// Get all partners use case
-class GetAllPartners implements UseCase<List<InsurancePartner>, GetAllPartnersParams> {
+class GetAllPartners
+    implements UseCase<List<InsurancePartner>, GetAllPartnersParams> {
   final AdminInsuranceRepository repository;
 
   const GetAllPartners(this.repository);
 
   @override
-  Future<Either<Failure, List<InsurancePartner>>> call(GetAllPartnersParams params) async {
+  Future<Either<Failure, List<InsurancePartner>>> call(
+    GetAllPartnersParams params,
+  ) async {
     return await repository.getAllPartners(
       type: params.type,
       status: params.status,
@@ -46,7 +49,15 @@ class GetAllPartnersParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [type, status, startDate, endDate, searchQuery, page, limit];
+  List<Object?> get props => [
+    type,
+    status,
+    startDate,
+    endDate,
+    searchQuery,
+    page,
+    limit,
+  ];
 }
 
 /// Create partner use case
@@ -56,7 +67,9 @@ class CreatePartner implements UseCase<InsurancePartner, CreatePartnerParams> {
   const CreatePartner(this.repository);
 
   @override
-  Future<Either<Failure, InsurancePartner>> call(CreatePartnerParams params) async {
+  Future<Either<Failure, InsurancePartner>> call(
+    CreatePartnerParams params,
+  ) async {
     if (params.partner.name.isEmpty) {
       return const Left(ValidationFailure('Partner name is required'));
     }
@@ -76,9 +89,7 @@ class CreatePartner implements UseCase<InsurancePartner, CreatePartnerParams> {
 class CreatePartnerParams extends Equatable {
   final InsurancePartner partner;
 
-  const CreatePartnerParams({
-    required this.partner,
-  });
+  const CreatePartnerParams({required this.partner});
 
   @override
   List<Object?> get props => [partner];
@@ -91,7 +102,9 @@ class UpdatePartner implements UseCase<InsurancePartner, UpdatePartnerParams> {
   const UpdatePartner(this.repository);
 
   @override
-  Future<Either<Failure, InsurancePartner>> call(UpdatePartnerParams params) async {
+  Future<Either<Failure, InsurancePartner>> call(
+    UpdatePartnerParams params,
+  ) async {
     if (params.partner.id.isEmpty) {
       return const Left(ValidationFailure('Partner ID is required'));
     }
@@ -107,22 +120,23 @@ class UpdatePartner implements UseCase<InsurancePartner, UpdatePartnerParams> {
 class UpdatePartnerParams extends Equatable {
   final InsurancePartner partner;
 
-  const UpdatePartnerParams({
-    required this.partner,
-  });
+  const UpdatePartnerParams({required this.partner});
 
   @override
   List<Object?> get props => [partner];
 }
 
 /// Update partner status use case
-class UpdatePartnerStatus implements UseCase<InsurancePartner, UpdatePartnerStatusParams> {
+class UpdatePartnerStatus
+    implements UseCase<InsurancePartner, UpdatePartnerStatusParams> {
   final AdminInsuranceRepository repository;
 
   const UpdatePartnerStatus(this.repository);
 
   @override
-  Future<Either<Failure, InsurancePartner>> call(UpdatePartnerStatusParams params) async {
+  Future<Either<Failure, InsurancePartner>> call(
+    UpdatePartnerStatusParams params,
+  ) async {
     if (params.partnerId.isEmpty) {
       return const Left(ValidationFailure('Partner ID is required'));
     }
@@ -176,22 +190,23 @@ class DeletePartner implements UseCase<void, DeletePartnerParams> {
 class DeletePartnerParams extends Equatable {
   final String partnerId;
 
-  const DeletePartnerParams({
-    required this.partnerId,
-  });
+  const DeletePartnerParams({required this.partnerId});
 
   @override
   List<Object?> get props => [partnerId];
 }
 
 /// Search partners use case
-class SearchPartners implements UseCase<List<InsurancePartner>, SearchPartnersParams> {
+class SearchPartners
+    implements UseCase<List<InsurancePartner>, SearchPartnersParams> {
   final AdminInsuranceRepository repository;
 
   const SearchPartners(this.repository);
 
   @override
-  Future<Either<Failure, List<InsurancePartner>>> call(SearchPartnersParams params) async {
+  Future<Either<Failure, List<InsurancePartner>>> call(
+    SearchPartnersParams params,
+  ) async {
     if (params.query.isEmpty) {
       return const Left(ValidationFailure('Search query is required'));
     }
@@ -226,13 +241,16 @@ class SearchPartnersParams extends Equatable {
 }
 
 /// Get partners analytics use case
-class GetPartnersAnalytics implements UseCase<Map<String, dynamic>, GetPartnersAnalyticsParams> {
+class GetPartnersAnalytics
+    implements UseCase<Map<String, dynamic>, GetPartnersAnalyticsParams> {
   final AdminInsuranceRepository repository;
 
   const GetPartnersAnalytics(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> call(GetPartnersAnalyticsParams params) async {
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    GetPartnersAnalyticsParams params,
+  ) async {
     return await repository.getPartnersAnalytics(
       startDate: params.startDate,
       endDate: params.endDate,
@@ -244,10 +262,7 @@ class GetPartnersAnalyticsParams extends Equatable {
   final DateTime? startDate;
   final DateTime? endDate;
 
-  const GetPartnersAnalyticsParams({
-    this.startDate,
-    this.endDate,
-  });
+  const GetPartnersAnalyticsParams({this.startDate, this.endDate});
 
   @override
   List<Object?> get props => [startDate, endDate];

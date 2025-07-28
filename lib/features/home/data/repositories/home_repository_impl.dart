@@ -72,27 +72,46 @@ class HomeRepositoryImpl implements HomeRepository {
   Future<List<Product>> getFeaturedProducts({int limit = 10}) async {
     try {
       // Try to get from remote first
-      print('Fetching featured products from remote...');
+      print('🔍 Fetching featured products from remote...');
       final remoteProducts = await _remoteDataSource.getFeaturedProducts(
         limit: limit,
       );
       final products = remoteProducts.map((model) => model.toEntity()).toList();
 
-      print('Found ${products.length} featured products from remote');
+      print('✅ Found ${products.length} featured products from remote');
+
+      // Debug: Print first few product names if any
+      if (products.isNotEmpty) {
+        print('📋 First few products:');
+        for (int i = 0; i < products.length && i < 3; i++) {
+          print(
+            '  - ${products[i].name} (Featured: ${products[i].isFeatured}, Active: ${products[i].isActive})',
+          );
+        }
+      }
 
       // Cache the results
       await _localDataSource.cacheFeaturedProducts(remoteProducts);
 
       return products;
     } catch (e) {
-      print('Error fetching featured products from remote: $e');
+      print('❌ Error fetching featured products from remote: $e');
+      print('📱 Stack trace: ${StackTrace.current}');
+
       // Fallback to local cache
-      final cachedProducts = await _localDataSource.getCachedFeaturedProducts();
-      print('Found ${cachedProducts.length} featured products from cache');
-      return cachedProducts
-          .take(limit)
-          .map((model) => model.toEntity())
-          .toList();
+      try {
+        final cachedProducts = await _localDataSource
+            .getCachedFeaturedProducts();
+        print('💾 Found ${cachedProducts.length} featured products from cache');
+        return cachedProducts
+            .take(limit)
+            .map((model) => model.toEntity())
+            .toList();
+      } catch (cacheError) {
+        print('❌ Cache fallback also failed: $cacheError');
+        // Return empty list as final fallback
+        return [];
+      }
     }
   }
 

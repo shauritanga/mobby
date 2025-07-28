@@ -60,7 +60,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   @override
   Widget build(BuildContext context) {
-    final cartAsync = ref.watch(userCartProvider('current_user_id'));
+    final cartAsync = ref.watch(userCartProvider);
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -69,7 +69,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
         loading: () => const CartLoadingState(),
         error: (error, stack) => CartErrorWidget(
           error: error.toString(),
-          onRetry: () => ref.invalidate(userCartProvider('current_user_id')),
+          onRetry: () => ref.invalidate(userCartProvider),
         ),
       ),
       floatingActionButton: _showFloatingActionButton
@@ -88,7 +88,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
-    final cartAsync = ref.watch(userCartProvider('current_user_id'));
+    final cartAsync = ref.watch(userCartProvider);
 
     return AppBar(
       title: Text(
@@ -437,7 +437,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
   }
 
   void _selectAll() {
-    final cartAsync = ref.read(userCartProvider('current_user_id'));
+    final cartAsync = ref.read(userCartProvider);
     cartAsync.whenData((cart) {
       setState(() {
         _selectedItemIds = cart.items.map((item) => item.id).toSet();
@@ -471,80 +471,138 @@ class _CartScreenState extends ConsumerState<CartScreen>
     );
   }
 
-  void _updateQuantity(CartItem item, int quantity) {
+  void _updateQuantity(CartItem item, int quantity) async {
     if (quantity <= 0) {
       _removeItem(item);
     } else {
-      ref.updateCartItemQuantity('current_user_id', item.id, quantity);
+      try {
+        await ref.updateCartItemQuantity(item.id, quantity);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update quantity: $e')),
+          );
+        }
+      }
     }
   }
 
-  void _removeItem(CartItem item) {
-    ref.removeFromCart('current_user_id', item.id);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${item.product.name} removed from cart'),
-        duration: const Duration(seconds: 3),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () =>
-              ref.addToCart('current_user_id', item.product, item.quantity),
-        ),
-      ),
-    );
-  }
-
-  void _removeSelectedItems() {
-    for (final itemId in _selectedItemIds) {
-      ref.removeFromCart('current_user_id', itemId);
+  void _removeItem(CartItem item) async {
+    try {
+      await ref.removeFromCart(item.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.product.name} removed from cart'),
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () => ref.addToCart(item.product, item.quantity),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to remove item: $e')));
+      }
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${_selectedItemIds.length} items removed from cart'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    _exitSelectionMode();
   }
 
-  void _saveForLater(CartItem item) {
-    ref.saveForLater('current_user_id', item.id);
+  void _removeSelectedItems() async {
+    final itemCount = _selectedItemIds.length;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${item.product.name} saved for later'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
+    try {
+      for (final itemId in _selectedItemIds) {
+        await ref.removeFromCart(itemId);
+      }
 
-  void _saveSelectedForLater() {
-    for (final itemId in _selectedItemIds) {
-      ref.saveForLater('current_user_id', itemId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$itemCount items removed from cart'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      _exitSelectionMode();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to remove items: $e')));
+      }
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${_selectedItemIds.length} items saved for later'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    _exitSelectionMode();
   }
 
-  void _saveAllForLater() {
-    ref.saveAllForLater('current_user_id');
+  void _saveForLater(CartItem item) async {
+    try {
+      await ref.saveForLater(item.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.product.name} saved for later'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save for later: $e')));
+      }
+    }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('All items saved for later'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  void _saveSelectedForLater() async {
+    final itemCount = _selectedItemIds.length;
+
+    try {
+      for (final itemId in _selectedItemIds) {
+        await ref.saveForLater(itemId);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$itemCount items saved for later'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      _exitSelectionMode();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save items: $e')));
+      }
+    }
+  }
+
+  void _saveAllForLater() async {
+    try {
+      await ref.saveAllForLater();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All items saved for later'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save items: $e')));
+      }
+    }
   }
 
   void _clearCart() {
@@ -561,16 +619,28 @@ class _CartScreenState extends ConsumerState<CartScreen>
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              ref.clearCart('current_user_id');
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Cart cleared'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              try {
+                await ref.clearCart();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Cart cleared'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to clear cart: $e'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -582,12 +652,28 @@ class _CartScreenState extends ConsumerState<CartScreen>
     );
   }
 
-  void _applyCoupon(String couponCode) {
-    ref.applyCoupon('current_user_id', couponCode);
+  void _applyCoupon(String couponCode) async {
+    try {
+      await ref.applyCoupon(couponCode);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to apply coupon: $e')));
+      }
+    }
   }
 
-  void _removeCoupon() {
-    ref.removeCoupon('current_user_id');
+  void _removeCoupon() async {
+    try {
+      await ref.removeCoupon();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to remove coupon: $e')));
+      }
+    }
   }
 
   void _navigateToProduct(String productId) {
@@ -596,19 +682,19 @@ class _CartScreenState extends ConsumerState<CartScreen>
 
   void _addRecommendedToCart(String productId) {
     // Add recommended product to cart
-    ref.addRecommendedToCart('current_user_id', productId);
+    ref.addRecommendedToCart(productId);
   }
 
   void _proceedToCheckout(Cart cart) {
     // Track checkout initiation
-    ref.trackCheckoutInitiated('current_user_id', cart);
+    ref.trackCheckoutInitiated(cart);
 
     // Navigate to checkout
     context.push('/checkout');
   }
 
   void _checkoutSelected() {
-    final cartAsync = ref.read(userCartProvider('current_user_id'));
+    final cartAsync = ref.read(userCartProvider);
     cartAsync.whenData((cart) {
       final selectedItems = cart.items
           .where((item) => _selectedItemIds.contains(item.id))
@@ -618,7 +704,7 @@ class _CartScreenState extends ConsumerState<CartScreen>
       final selectedCart = cart.copyWith(items: selectedItems);
 
       // Track partial checkout
-      ref.trackPartialCheckout('current_user_id', selectedCart);
+      ref.trackPartialCheckout(selectedCart);
 
       // Navigate to checkout with selected items
       context.push('/checkout?selectedItems=${_selectedItemIds.join(',')}');

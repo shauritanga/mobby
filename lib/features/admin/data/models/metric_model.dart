@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/metric.dart';
 
-part 'metric_model.g.dart';
-
-@JsonSerializable()
 class MetricDataPointModel {
   final DateTime timestamp;
   final double value;
@@ -15,10 +11,21 @@ class MetricDataPointModel {
     this.metadata,
   });
 
-  factory MetricDataPointModel.fromJson(Map<String, dynamic> json) =>
-      _$MetricDataPointModelFromJson(json);
+  factory MetricDataPointModel.fromJson(Map<String, dynamic> json) {
+    return MetricDataPointModel(
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      value: (json['value'] as num).toDouble(),
+      metadata: json['metadata'] as Map<String, dynamic>?,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$MetricDataPointModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'timestamp': timestamp.toIso8601String(),
+      'value': value,
+      'metadata': metadata,
+    };
+  }
 
   factory MetricDataPointModel.fromEntity(MetricDataPoint dataPoint) {
     return MetricDataPointModel(
@@ -37,7 +44,6 @@ class MetricDataPointModel {
   }
 }
 
-@JsonSerializable()
 class MetricTrendModel {
   final TrendDirection direction;
   final double percentage;
@@ -53,10 +59,28 @@ class MetricTrendModel {
     required this.currentValue,
   });
 
-  factory MetricTrendModel.fromJson(Map<String, dynamic> json) =>
-      _$MetricTrendModelFromJson(json);
+  factory MetricTrendModel.fromJson(Map<String, dynamic> json) {
+    return MetricTrendModel(
+      direction: TrendDirection.values.firstWhere(
+        (e) => e.name == json['direction'],
+        orElse: () => TrendDirection.stable,
+      ),
+      percentage: (json['percentage'] as num).toDouble(),
+      period: json['period'] as String,
+      previousValue: (json['previousValue'] as num).toDouble(),
+      currentValue: (json['currentValue'] as num).toDouble(),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$MetricTrendModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'direction': direction.name,
+      'percentage': percentage,
+      'period': period,
+      'previousValue': previousValue,
+      'currentValue': currentValue,
+    };
+  }
 
   factory MetricTrendModel.fromEntity(MetricTrend trend) {
     return MetricTrendModel(
@@ -79,7 +103,6 @@ class MetricTrendModel {
   }
 }
 
-@JsonSerializable()
 class MetricModel {
   final String id;
   final String name;
@@ -91,9 +114,7 @@ class MetricModel {
   final double? targetValue;
   final String unit;
   final String? currency;
-  @JsonKey(fromJson: _trendFromJson, toJson: _trendToJson)
   final MetricTrend? trend;
-  @JsonKey(fromJson: _dataPointsFromJson, toJson: _dataPointsToJson)
   final List<MetricDataPoint> dataPoints;
   final Map<String, dynamic> filters;
   final bool isRealTime;
@@ -119,10 +140,69 @@ class MetricModel {
     required this.createdAt,
   });
 
-  factory MetricModel.fromJson(Map<String, dynamic> json) =>
-      _$MetricModelFromJson(json);
+  factory MetricModel.fromJson(Map<String, dynamic> json) {
+    return MetricModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      displayName: json['displayName'] as String,
+      description: json['description'] as String,
+      type: MetricType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => MetricType.users,
+      ),
+      period: MetricPeriod.values.firstWhere(
+        (e) => e.name == json['period'],
+        orElse: () => MetricPeriod.daily,
+      ),
+      currentValue: (json['currentValue'] as num).toDouble(),
+      targetValue: json['targetValue'] != null
+          ? (json['targetValue'] as num).toDouble()
+          : null,
+      unit: json['unit'] as String,
+      currency: json['currency'] as String?,
+      trend: json['trend'] != null
+          ? MetricTrendModel.fromJson(
+              json['trend'] as Map<String, dynamic>,
+            ).toEntity()
+          : null,
+      dataPoints: (json['dataPoints'] as List<dynamic>)
+          .map(
+            (e) => MetricDataPointModel.fromJson(
+              e as Map<String, dynamic>,
+            ).toEntity(),
+          )
+          .toList(),
+      filters: Map<String, dynamic>.from(json['filters'] as Map),
+      isRealTime: json['isRealTime'] as bool? ?? false,
+      lastUpdated: DateTime.parse(json['lastUpdated'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$MetricModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'displayName': displayName,
+      'description': description,
+      'type': type.name,
+      'period': period.name,
+      'currentValue': currentValue,
+      'targetValue': targetValue,
+      'unit': unit,
+      'currency': currency,
+      'trend': trend != null
+          ? MetricTrendModel.fromEntity(trend!).toJson()
+          : null,
+      'dataPoints': dataPoints
+          .map((e) => MetricDataPointModel.fromEntity(e).toJson())
+          .toList(),
+      'filters': filters,
+      'isRealTime': isRealTime,
+      'lastUpdated': lastUpdated.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
 
   factory MetricModel.fromEntity(Metric metric) {
     return MetricModel(
@@ -165,30 +245,4 @@ class MetricModel {
       createdAt: createdAt,
     );
   }
-}
-
-// Helper functions for JSON conversion
-MetricTrend? _trendFromJson(Map<String, dynamic>? json) {
-  if (json == null) return null;
-  return MetricTrendModel.fromJson(json).toEntity();
-}
-
-Map<String, dynamic>? _trendToJson(MetricTrend? trend) {
-  if (trend == null) return null;
-  return MetricTrendModel.fromEntity(trend).toJson();
-}
-
-List<MetricDataPoint> _dataPointsFromJson(List<dynamic> json) {
-  return json
-      .map(
-        (e) =>
-            MetricDataPointModel.fromJson(e as Map<String, dynamic>).toEntity(),
-      )
-      .toList();
-}
-
-List<Map<String, dynamic>> _dataPointsToJson(List<MetricDataPoint> dataPoints) {
-  return dataPoints
-      .map((e) => MetricDataPointModel.fromEntity(e).toJson())
-      .toList();
 }

@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../entities/user.dart';
 import '../entities/auth_token.dart';
 
@@ -22,9 +22,7 @@ abstract class AuthRepository {
     String? phoneNumber,
   });
 
-  Future<Either<Failure, void>> sendPasswordResetEmail({
-    required String email,
-  });
+  Future<Either<Failure, void>> sendPasswordResetEmail({required String email});
 
   Future<Either<Failure, void>> sendEmailVerification();
 
@@ -44,12 +42,12 @@ abstract class AuthRepository {
 
   // User state methods
   Future<Either<Failure, User?>> getCurrentUser();
-  
+
   Stream<User?> get authStateChanges;
 
   // Token management
   Future<Either<Failure, AuthToken?>> getCurrentToken();
-  
+
   Future<Either<Failure, AuthToken>> refreshToken();
 
   // Profile management

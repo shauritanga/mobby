@@ -1,24 +1,28 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/vehicle_repository.dart';
 import '../entities/maintenance_record.dart';
 
 /// Get Vehicle Maintenance Records Use Case
 /// Following specifications from FEATURES_DOCUMENTATION.md - Vehicle Management Feature
-class GetVehicleMaintenanceRecordsUseCase implements UseCase<List<MaintenanceRecord>, String> {
+class GetVehicleMaintenanceRecordsUseCase
+    implements UseCase<List<MaintenanceRecord>, String> {
   final VehicleRepository repository;
 
   GetVehicleMaintenanceRecordsUseCase(this.repository);
 
   @override
-  Future<Either<Failure, List<MaintenanceRecord>>> call(String vehicleId) async {
+  Future<Either<Failure, List<MaintenanceRecord>>> call(
+    String vehicleId,
+  ) async {
     return await repository.getVehicleMaintenanceRecords(vehicleId);
   }
 }
 
 /// Get User Maintenance Records Use Case
-class GetUserMaintenanceRecordsUseCase implements UseCase<List<MaintenanceRecord>, String> {
+class GetUserMaintenanceRecordsUseCase
+    implements UseCase<List<MaintenanceRecord>, String> {
   final VehicleRepository repository;
 
   GetUserMaintenanceRecordsUseCase(this.repository);
@@ -30,19 +34,24 @@ class GetUserMaintenanceRecordsUseCase implements UseCase<List<MaintenanceRecord
 }
 
 /// Create Maintenance Record Use Case
-class CreateMaintenanceRecordUseCase implements UseCase<MaintenanceRecord, CreateMaintenanceRecordParams> {
+class CreateMaintenanceRecordUseCase
+    implements UseCase<MaintenanceRecord, CreateMaintenanceRecordParams> {
   final VehicleRepository repository;
 
   CreateMaintenanceRecordUseCase(this.repository);
 
   @override
-  Future<Either<Failure, MaintenanceRecord>> call(CreateMaintenanceRecordParams params) async {
+  Future<Either<Failure, MaintenanceRecord>> call(
+    CreateMaintenanceRecordParams params,
+  ) async {
     // Validate required fields
     if (params.title.trim().isEmpty) {
       return const Left(ValidationFailure('Maintenance title is required'));
     }
     if (params.description.trim().isEmpty) {
-      return const Left(ValidationFailure('Maintenance description is required'));
+      return const Left(
+        ValidationFailure('Maintenance description is required'),
+      );
     }
     if (params.cost < 0) {
       return const Left(ValidationFailure('Cost cannot be negative'));
@@ -79,48 +88,52 @@ class CreateMaintenanceRecordUseCase implements UseCase<MaintenanceRecord, Creat
 }
 
 /// Update Maintenance Record Use Case
-class UpdateMaintenanceRecordUseCase implements UseCase<MaintenanceRecord, UpdateMaintenanceRecordParams> {
+class UpdateMaintenanceRecordUseCase
+    implements UseCase<MaintenanceRecord, UpdateMaintenanceRecordParams> {
   final VehicleRepository repository;
 
   UpdateMaintenanceRecordUseCase(this.repository);
 
   @override
-  Future<Either<Failure, MaintenanceRecord>> call(UpdateMaintenanceRecordParams params) async {
+  Future<Either<Failure, MaintenanceRecord>> call(
+    UpdateMaintenanceRecordParams params,
+  ) async {
     // Get existing maintenance record
-    final existingRecordResult = await repository.getMaintenanceRecordById(params.recordId);
-    
-    return existingRecordResult.fold(
-      (failure) => Left(failure),
-      (existingRecord) async {
-        if (existingRecord == null) {
-          return const Left(NotFoundFailure('Maintenance record not found'));
-        }
-
-        // Update maintenance record with new data
-        final updatedRecord = existingRecord.copyWith(
-          type: params.type,
-          title: params.title?.trim(),
-          description: params.description?.trim(),
-          serviceDate: params.serviceDate,
-          mileageAtService: params.mileageAtService,
-          cost: params.cost,
-          currency: params.currency,
-          serviceProvider: params.serviceProvider?.trim(),
-          serviceProviderContact: params.serviceProviderContact?.trim(),
-          location: params.location?.trim(),
-          partsReplaced: params.partsReplaced,
-          servicesPerformed: params.servicesPerformed,
-          nextServiceDate: params.nextServiceDate,
-          nextServiceMileage: params.nextServiceMileage,
-          receiptUrls: params.receiptUrls,
-          notes: params.notes,
-          status: params.status,
-          updatedAt: DateTime.now(),
-        );
-
-        return await repository.updateMaintenanceRecord(updatedRecord);
-      },
+    final existingRecordResult = await repository.getMaintenanceRecordById(
+      params.recordId,
     );
+
+    return existingRecordResult.fold((failure) => Left(failure), (
+      existingRecord,
+    ) async {
+      if (existingRecord == null) {
+        return const Left(NotFoundFailure('Maintenance record not found'));
+      }
+
+      // Update maintenance record with new data
+      final updatedRecord = existingRecord.copyWith(
+        type: params.type,
+        title: params.title?.trim(),
+        description: params.description?.trim(),
+        serviceDate: params.serviceDate,
+        mileageAtService: params.mileageAtService,
+        cost: params.cost,
+        currency: params.currency,
+        serviceProvider: params.serviceProvider?.trim(),
+        serviceProviderContact: params.serviceProviderContact?.trim(),
+        location: params.location?.trim(),
+        partsReplaced: params.partsReplaced,
+        servicesPerformed: params.servicesPerformed,
+        nextServiceDate: params.nextServiceDate,
+        nextServiceMileage: params.nextServiceMileage,
+        receiptUrls: params.receiptUrls,
+        notes: params.notes,
+        status: params.status,
+        updatedAt: DateTime.now(),
+      );
+
+      return await repository.updateMaintenanceRecord(updatedRecord);
+    });
   }
 }
 
@@ -137,7 +150,8 @@ class DeleteMaintenanceRecordUseCase implements UseCase<void, String> {
 }
 
 /// Get Overdue Maintenance Records Use Case
-class GetOverdueMaintenanceRecordsUseCase implements UseCase<List<MaintenanceRecord>, String> {
+class GetOverdueMaintenanceRecordsUseCase
+    implements UseCase<List<MaintenanceRecord>, String> {
   final VehicleRepository repository;
 
   GetOverdueMaintenanceRecordsUseCase(this.repository);
@@ -149,7 +163,8 @@ class GetOverdueMaintenanceRecordsUseCase implements UseCase<List<MaintenanceRec
 }
 
 /// Get Total Maintenance Cost Use Case
-class GetTotalMaintenanceCostUseCase implements UseCase<double, GetMaintenanceCostParams> {
+class GetTotalMaintenanceCostUseCase
+    implements UseCase<double, GetMaintenanceCostParams> {
   final VehicleRepository repository;
 
   GetTotalMaintenanceCostUseCase(this.repository);
@@ -165,7 +180,8 @@ class GetTotalMaintenanceCostUseCase implements UseCase<double, GetMaintenanceCo
 }
 
 /// Get Maintenance Statistics Use Case
-class GetMaintenanceStatisticsUseCase implements UseCase<Map<String, dynamic>, String> {
+class GetMaintenanceStatisticsUseCase
+    implements UseCase<Map<String, dynamic>, String> {
   final VehicleRepository repository;
 
   GetMaintenanceStatisticsUseCase(this.repository);

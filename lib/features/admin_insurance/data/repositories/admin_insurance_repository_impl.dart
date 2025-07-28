@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/application.dart';
 import '../../domain/entities/commission.dart';
 import '../../domain/entities/insurance_partner.dart';

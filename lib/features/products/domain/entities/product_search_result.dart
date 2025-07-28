@@ -18,6 +18,17 @@ class ProductSearchResult extends Equatable {
     required this.hasPreviousPage,
   });
 
+  factory ProductSearchResult.empty() {
+    return const ProductSearchResult(
+      products: [],
+      totalCount: 0,
+      currentPage: 1,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    );
+  }
+
   bool get isEmpty => products.isEmpty;
   bool get isNotEmpty => products.isNotEmpty;
 

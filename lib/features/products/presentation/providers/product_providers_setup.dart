@@ -1,23 +1,19 @@
 // Product Providers Setup and Exports
 // This file provides a centralized setup for all product-related providers
-
-export 'product_providers.dart';
+export 'product_providers.dart' hide recentlyViewedProductsProvider;
 export 'user_product_providers.dart';
 export 'search_filter_providers.dart';
 export 'simple_providers.dart';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobby/features/home/presentation/providers/home_providers.dart'
     as home;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../domain/entities/product.dart';
 import '../../domain/entities/brand.dart';
 import '../../domain/entities/product_filter.dart';
 import '../../domain/repositories/product_repository.dart';
-import '../../data/datasources/sample_product_data.dart';
-
 import 'product_providers.dart';
 import 'user_product_providers.dart';
 import 'search_filter_providers.dart';
@@ -34,7 +30,6 @@ class ProductProvidersConfig {
   static List<Override> getProviderOverrides({
     FirebaseFirestore? firestore,
     SharedPreferences? sharedPreferences,
-    SampleProductData? sampleData,
   }) {
     final overrides = <Override>[];
 
@@ -44,11 +39,7 @@ class ProductProvidersConfig {
 
     // Mock overrides - in a real app these would override actual providers
     if (sharedPreferences != null) {
-      print('SharedPreferences override would be applied');
-    }
-
-    if (sampleData != null) {
-      print('Sample data override would be applied');
+      debugPrint('SharedPreferences override would be applied');
     }
 
     return overrides;
@@ -78,14 +69,14 @@ class ProductProvidersHelper {
       ref.read(featuredProductsProvider);
 
       // Mock brand preloading
-      print('Brands would be preloaded here');
+      debugPrint('Brands would be preloaded here');
 
       // Check cache validity
       // Mock cache validation
       // In a real app, this would check cache validity
-      print('Product cache preloaded successfully');
+      debugPrint('Product cache preloaded successfully');
     } catch (e) {
-      print('Error preloading product data: $e');
+      debugPrint('Error preloading product data: $e');
     }
   }
 
@@ -116,17 +107,19 @@ class ProductProvidersMonitor {
   static void startMonitoring(WidgetRef ref) {
     // Monitor search state
     ref.listen(searchStateProvider, (previous, next) {
-      print('Search query changed: $previous -> $next');
+      debugPrint('Search query changed: $previous -> $next');
     });
 
     // Monitor filter state
     ref.listen(filterStateProvider, (previous, next) {
-      print('Filter changed: ${previous?.hasFilters} -> ${next.hasFilters}');
+      debugPrint(
+        'Filter changed: ${previous?.hasFilters} -> ${next.hasFilters}',
+      );
     });
 
     // Monitor wishlist state
     ref.listen(wishlistManagerProvider, (previous, next) {
-      print('Wishlist updated: ${next.length} items');
+      debugPrint('Wishlist updated: ${next.length} items');
     });
   }
 
@@ -154,8 +147,8 @@ class ProductProvidersErrorHandler {
     StackTrace stackTrace,
     String providerName,
   ) {
-    print('Provider Error in $providerName: $error');
-    print('Stack trace: $stackTrace');
+    debugPrint('Provider Error in $providerName: $error');
+    debugPrint('Stack trace: $stackTrace');
 
     // Log to analytics service
     // Analytics.logError(error, stackTrace, providerName);
@@ -201,7 +194,7 @@ class ProductProvidersCacheManager {
       ref.invalidate(popularProductsProvider);
       ref.invalidate(saleProductsProvider);
 
-      print('All product caches refreshed successfully');
+      debugPrint('All product caches refreshed successfully');
     } catch (e) {
       ProductProvidersErrorHandler.handleProviderError(
         e,
@@ -215,7 +208,7 @@ class ProductProvidersCacheManager {
   static Future<void> clearAllCaches(WidgetRef ref) async {
     try {
       // Mock cache clearing
-      print('All product caches cleared successfully');
+      debugPrint('All product caches cleared successfully');
     } catch (e) {
       ProductProvidersErrorHandler.handleProviderError(
         e,
@@ -253,7 +246,7 @@ class ProductProvidersAnalytics {
     String providerName,
     Map<String, dynamic> params,
   ) {
-    print('Provider Usage: $providerName with params: $params');
+    debugPrint('Provider Usage: $providerName with params: $params');
 
     // Send to analytics service
     // Analytics.track('provider_usage', {
@@ -305,7 +298,7 @@ class ProductProvidersTestUtils {
 
     if (mockRepository != null) {
       // Mock repository override would be applied here
-      print('Mock repository override would be applied');
+      debugPrint('Mock repository override would be applied');
     }
 
     // Add more mock overrides as needed

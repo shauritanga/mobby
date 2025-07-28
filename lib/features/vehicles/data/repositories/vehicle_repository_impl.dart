@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../../../core/errors/failures.dart';
-import '../../../../core/errors/exceptions.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/error/exceptions.dart';
 import '../../domain/repositories/vehicle_repository.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/document.dart';

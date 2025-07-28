@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../errors/failures.dart';
+import '../error/failures.dart';
 
 /// Base class for all use cases
 /// Following clean architecture principles

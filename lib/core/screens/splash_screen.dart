@@ -26,34 +26,44 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     if (!mounted) return;
 
-    // Check if it's first time user
-    final isFirstTimeAsync = ref.read(isFirstTimeProvider);
-    final isFirstTime = isFirstTimeAsync.when(
-      data: (value) => value,
-      loading: () => true,
-      error: (_, __) => true,
-    );
+    try {
+      // Check if it's first time user - properly await the FutureProvider
+      final isFirstTime = await ref.read(isFirstTimeProvider.future);
+      print('🔍 Splash: isFirstTime = $isFirstTime');
 
-    if (isFirstTime) {
-      // Show onboarding
-      context.go(AppConstants.onboardingRoute);
-    } else {
-      // Check authentication status
-      final currentUserAsync = ref.read(currentUserProvider);
-      final user = currentUserAsync.when(
-        data: (value) => value,
-        loading: () => null,
-        error: (_, __) => null,
-      );
-
-      if (user != null) {
-        // User is authenticated, determine route based on role
-        final defaultRoute = RoleHelper.getDefaultRoute(user);
-        context.go(defaultRoute);
+      if (isFirstTime) {
+        // Show onboarding
+        print('📱 Splash: Navigating to onboarding');
+        if (mounted) context.go(AppConstants.onboardingRoute);
       } else {
-        // User is not authenticated, go to login
-        context.go(AppConstants.loginRoute);
+        // Check authentication status
+        print('🔍 Splash: Checking authentication status');
+        try {
+          final user = await ref.read(currentUserProvider.future);
+          print('👤 Splash: User = ${user?.email ?? 'null'}');
+
+          if (!mounted) return;
+
+          if (user != null) {
+            // User is authenticated, determine route based on role
+            final defaultRoute = RoleHelper.getDefaultRoute(user);
+            print('🏠 Splash: Navigating to $defaultRoute');
+            context.go(defaultRoute);
+          } else {
+            // User is not authenticated, go to login
+            print('🔐 Splash: Navigating to login');
+            context.go(AppConstants.loginRoute);
+          }
+        } catch (e) {
+          // If user check fails, go to login
+          print('❌ Splash: User check failed, navigating to login: $e');
+          if (mounted) context.go(AppConstants.loginRoute);
+        }
       }
+    } catch (e) {
+      // If first time check fails, assume first time and show onboarding
+      print('❌ Splash: First time check failed, showing onboarding: $e');
+      if (mounted) context.go(AppConstants.onboardingRoute);
     }
   }
 

@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/validators.dart';
 import '../entities/user.dart';
 import '../repositories/auth_repository.dart';
@@ -27,7 +27,10 @@ class SignUpWithEmailUseCase {
       return Left(ValidationFailure(passwordValidation));
     }
 
-    final confirmPasswordValidation = Validators.validateConfirmPassword(confirmPassword, password);
+    final confirmPasswordValidation = Validators.validateConfirmPassword(
+      confirmPassword,
+      password,
+    );
     if (confirmPasswordValidation != null) {
       return Left(ValidationFailure(confirmPasswordValidation));
     }

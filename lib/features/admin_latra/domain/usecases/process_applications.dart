@@ -1,19 +1,22 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../latra/domain/entities/latra_application.dart';
 import '../repositories/admin_latra_repository.dart';
 
 /// Get all applications use case
-class GetAllApplications implements UseCase<List<LATRAApplication>, GetAllApplicationsParams> {
+class GetAllApplications
+    implements UseCase<List<LATRAApplication>, GetAllApplicationsParams> {
   final AdminLATRARepository repository;
 
   const GetAllApplications(this.repository);
 
   @override
-  Future<Either<Failure, List<LATRAApplication>>> call(GetAllApplicationsParams params) async {
+  Future<Either<Failure, List<LATRAApplication>>> call(
+    GetAllApplicationsParams params,
+  ) async {
     return await repository.getAllApplications(
       status: params.status,
       type: params.type,
@@ -46,17 +49,28 @@ class GetAllApplicationsParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [status, type, startDate, endDate, searchQuery, page, limit];
+  List<Object?> get props => [
+    status,
+    type,
+    startDate,
+    endDate,
+    searchQuery,
+    page,
+    limit,
+  ];
 }
 
 /// Update application status use case
-class UpdateApplicationStatus implements UseCase<LATRAApplication, UpdateApplicationStatusParams> {
+class UpdateApplicationStatus
+    implements UseCase<LATRAApplication, UpdateApplicationStatusParams> {
   final AdminLATRARepository repository;
 
   const UpdateApplicationStatus(this.repository);
 
   @override
-  Future<Either<Failure, LATRAApplication>> call(UpdateApplicationStatusParams params) async {
+  Future<Either<Failure, LATRAApplication>> call(
+    UpdateApplicationStatusParams params,
+  ) async {
     if (params.applicationId.isEmpty) {
       return const Left(ValidationFailure('Application ID is required'));
     }
@@ -92,13 +106,16 @@ class UpdateApplicationStatusParams extends Equatable {
 }
 
 /// Assign application use case
-class AssignApplication implements UseCase<LATRAApplication, AssignApplicationParams> {
+class AssignApplication
+    implements UseCase<LATRAApplication, AssignApplicationParams> {
   final AdminLATRARepository repository;
 
   const AssignApplication(this.repository);
 
   @override
-  Future<Either<Failure, LATRAApplication>> call(AssignApplicationParams params) async {
+  Future<Either<Failure, LATRAApplication>> call(
+    AssignApplicationParams params,
+  ) async {
     if (params.applicationId.isEmpty) {
       return const Left(ValidationFailure('Application ID is required'));
     }
@@ -178,13 +195,16 @@ class AddApplicationNotesParams extends Equatable {
 }
 
 /// Get applications analytics use case
-class GetApplicationsAnalytics implements UseCase<Map<String, dynamic>, GetApplicationsAnalyticsParams> {
+class GetApplicationsAnalytics
+    implements UseCase<Map<String, dynamic>, GetApplicationsAnalyticsParams> {
   final AdminLATRARepository repository;
 
   const GetApplicationsAnalytics(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> call(GetApplicationsAnalyticsParams params) async {
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    GetApplicationsAnalyticsParams params,
+  ) async {
     return await repository.getApplicationsAnalytics(
       startDate: params.startDate,
       endDate: params.endDate,
@@ -196,23 +216,23 @@ class GetApplicationsAnalyticsParams extends Equatable {
   final DateTime? startDate;
   final DateTime? endDate;
 
-  const GetApplicationsAnalyticsParams({
-    this.startDate,
-    this.endDate,
-  });
+  const GetApplicationsAnalyticsParams({this.startDate, this.endDate});
 
   @override
   List<Object?> get props => [startDate, endDate];
 }
 
 /// Bulk update application status use case
-class BulkUpdateApplicationStatus implements UseCase<void, BulkUpdateApplicationStatusParams> {
+class BulkUpdateApplicationStatus
+    implements UseCase<void, BulkUpdateApplicationStatusParams> {
   final AdminLATRARepository repository;
 
   const BulkUpdateApplicationStatus(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(BulkUpdateApplicationStatusParams params) async {
+  Future<Either<Failure, void>> call(
+    BulkUpdateApplicationStatusParams params,
+  ) async {
     if (params.applicationIds.isEmpty) {
       return const Left(ValidationFailure('Application IDs are required'));
     }
@@ -248,13 +268,16 @@ class BulkUpdateApplicationStatusParams extends Equatable {
 }
 
 /// Search applications use case
-class SearchApplications implements UseCase<List<LATRAApplication>, SearchApplicationsParams> {
+class SearchApplications
+    implements UseCase<List<LATRAApplication>, SearchApplicationsParams> {
   final AdminLATRARepository repository;
 
   const SearchApplications(this.repository);
 
   @override
-  Future<Either<Failure, List<LATRAApplication>>> call(SearchApplicationsParams params) async {
+  Future<Either<Failure, List<LATRAApplication>>> call(
+    SearchApplicationsParams params,
+  ) async {
     if (params.query.isEmpty) {
       return const Left(ValidationFailure('Search query is required'));
     }

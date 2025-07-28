@@ -13,6 +13,7 @@ import '../widgets/product_actions_section.dart';
 import '../widgets/product_detail_app_bar.dart';
 import '../widgets/product_loading_detail.dart';
 import '../widgets/product_error_widget.dart';
+import '../../../cart/presentation/providers/cart_providers.dart';
 
 class ProductDetailScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -289,7 +290,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
     );
   }
 
-  void _addToCart(Product product) {
+  void _addToCart(Product product) async {
     if (product.isOutOfStock) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -300,16 +301,29 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen>
       return;
     }
 
-    // Add to cart logic here
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added ${product.name} to cart'),
-        action: SnackBarAction(
-          label: 'View Cart',
-          onPressed: () => context.push('/cart'),
-        ),
-      ),
-    );
+    try {
+      await ref.addToCart(product, 1);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${product.name} to cart'),
+            action: SnackBarAction(
+              label: 'View Cart',
+              onPressed: () => context.push('/cart'),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add to cart: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   void _buyNow(Product product) {

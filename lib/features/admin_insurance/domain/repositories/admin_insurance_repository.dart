@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../entities/application.dart';
 import '../entities/commission.dart';
 import '../entities/insurance_partner.dart';
@@ -20,11 +20,15 @@ abstract class AdminInsuranceRepository {
   });
 
   Future<Either<Failure, InsurancePartner?>> getPartnerById(String partnerId);
-  
-  Future<Either<Failure, InsurancePartner>> createPartner(InsurancePartner partner);
-  
-  Future<Either<Failure, InsurancePartner>> updatePartner(InsurancePartner partner);
-  
+
+  Future<Either<Failure, InsurancePartner>> createPartner(
+    InsurancePartner partner,
+  );
+
+  Future<Either<Failure, InsurancePartner>> updatePartner(
+    InsurancePartner partner,
+  );
+
   Future<Either<Failure, InsurancePartner>> updatePartnerStatus(
     String partnerId,
     PartnerStatus status,
@@ -35,8 +39,7 @@ abstract class AdminInsuranceRepository {
   Future<Either<Failure, void>> deletePartner(String partnerId);
 
   Future<Either<Failure, List<InsurancePartner>>> searchPartners(
-    String query,
-    {
+    String query, {
     PartnerType? type,
     PartnerStatus? status,
     int page = 1,
@@ -62,8 +65,10 @@ abstract class AdminInsuranceRepository {
     int limit = 20,
   });
 
-  Future<Either<Failure, InsuranceApplication?>> getApplicationById(String applicationId);
-  
+  Future<Either<Failure, InsuranceApplication?>> getApplicationById(
+    String applicationId,
+  );
+
   Future<Either<Failure, InsuranceApplication>> updateApplicationStatus(
     String applicationId,
     ApplicationStatus status,
@@ -95,8 +100,7 @@ abstract class AdminInsuranceRepository {
   );
 
   Future<Either<Failure, List<InsuranceApplication>>> searchApplications(
-    String query,
-    {
+    String query, {
     ApplicationType? type,
     ApplicationStatus? status,
     ApplicationPriority? priority,
@@ -125,7 +129,7 @@ abstract class AdminInsuranceRepository {
   });
 
   Future<Either<Failure, Commission?>> getCommissionById(String commissionId);
-  
+
   Future<Either<Failure, Commission>> updateCommissionStatus(
     String commissionId,
     CommissionStatus status,
@@ -150,16 +154,14 @@ abstract class AdminInsuranceRepository {
   );
 
   Future<Either<Failure, List<Commission>>> getCommissionsByPartner(
-    String partnerId,
-    {
+    String partnerId, {
     CommissionStatus? status,
     DateTime? startDate,
     DateTime? endDate,
   });
 
   Future<Either<Failure, List<Commission>>> searchCommissions(
-    String query,
-    {
+    String query, {
     CommissionType? type,
     CommissionStatus? status,
     String? partnerId,

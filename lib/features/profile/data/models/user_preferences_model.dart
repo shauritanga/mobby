@@ -1,11 +1,7 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/user_preferences.dart';
-
-part 'user_preferences_model.g.dart';
 
 /// User preferences model for data layer
 /// Following Firebase integration pattern as specified in FEATURES_DOCUMENTATION.md
-@JsonSerializable()
 class UserPreferencesModel extends UserPreferences {
   const UserPreferencesModel({
     required super.userId,
@@ -30,10 +26,59 @@ class UserPreferencesModel extends UserPreferences {
     super.updatedAt,
   });
 
-  factory UserPreferencesModel.fromJson(Map<String, dynamic> json) =>
-      _$UserPreferencesModelFromJson(json);
+  factory UserPreferencesModel.fromJson(Map<String, dynamic> json) {
+    return UserPreferencesModel(
+      userId: json['userId'] ?? '',
+      language: json['language'] ?? 'en',
+      currency: json['currency'] ?? 'TZS',
+      notificationsEnabled: json['notificationsEnabled'] ?? true,
+      emailNotifications: json['emailNotifications'] ?? true,
+      smsNotifications: json['smsNotifications'] ?? true,
+      pushNotifications: json['pushNotifications'] ?? true,
+      marketingEmails: json['marketingEmails'] ?? false,
+      orderUpdates: json['orderUpdates'] ?? true,
+      promotionalOffers: json['promotionalOffers'] ?? true,
+      expertRecommendations: json['expertRecommendations'] ?? true,
+      theme: json['theme'] ?? 'system',
+      biometricAuth: json['biometricAuth'] ?? false,
+      autoBackup: json['autoBackup'] ?? true,
+      favoriteCategories: List<String>.from(json['favoriteCategories'] ?? []),
+      preferredBrands: List<String>.from(json['preferredBrands'] ?? []),
+      defaultAddressId: json['defaultAddressId'] ?? '',
+      defaultPaymentMethodId: json['defaultPaymentMethodId'] ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$UserPreferencesModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'language': language,
+      'currency': currency,
+      'notificationsEnabled': notificationsEnabled,
+      'emailNotifications': emailNotifications,
+      'smsNotifications': smsNotifications,
+      'pushNotifications': pushNotifications,
+      'marketingEmails': marketingEmails,
+      'orderUpdates': orderUpdates,
+      'promotionalOffers': promotionalOffers,
+      'expertRecommendations': expertRecommendations,
+      'theme': theme,
+      'biometricAuth': biometricAuth,
+      'autoBackup': autoBackup,
+      'favoriteCategories': favoriteCategories,
+      'preferredBrands': preferredBrands,
+      'defaultAddressId': defaultAddressId,
+      'defaultPaymentMethodId': defaultPaymentMethodId,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
 
   factory UserPreferencesModel.fromEntity(UserPreferences preferences) {
     return UserPreferencesModel(
@@ -86,7 +131,10 @@ class UserPreferencesModel extends UserPreferences {
   }
 
   // Firebase specific factory
-  factory UserPreferencesModel.fromFirestore(Map<String, dynamic> data, String userId) {
+  factory UserPreferencesModel.fromFirestore(
+    Map<String, dynamic> data,
+    String userId,
+  ) {
     return UserPreferencesModel(
       userId: userId,
       language: data['language'] ?? 'en',

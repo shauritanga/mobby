@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/vehicle_providers.dart';
 import '../providers/vehicle_operations_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../widgets/vehicle_form_fields.dart';
+
 import '../widgets/vehicle_image_picker.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/usecases/manage_vehicles_usecase.dart';
@@ -119,26 +119,13 @@ class _AddEditVehicleScreenState extends ConsumerState<AddEditVehicleScreen> {
     final currentUserAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Vehicle' : 'Add Vehicle'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        scrolledUnderElevation: 3, // Increased for better Material 3 compliance
-        surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
-        actions: [
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: _showDeleteConfirmation,
-            ),
-        ],
-      ),
+      appBar: _buildCleanAppBar(context),
       body: currentUserAsync.when(
         data: (user) {
           if (user == null) {
             return _buildNotSignedInState();
           }
-          return _buildForm(user.id);
+          return _buildCleanForm(user.id);
         },
         loading: () => _buildLoadingState(),
         error: (error, stack) => _buildErrorState(error.toString()),
@@ -146,387 +133,574 @@ class _AddEditVehicleScreenState extends ConsumerState<AddEditVehicleScreen> {
     );
   }
 
-  Widget _buildForm(String userId) {
+  PreferredSizeWidget _buildCleanAppBar(BuildContext context) {
+    return AppBar(
+      title: Text(_isEditing ? 'Edit Vehicle' : 'Add Vehicle'),
+      actions: [
+        if (_isEditing)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _showDeleteConfirmation,
+            tooltip: 'Delete Vehicle',
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCleanForm(String userId) {
     return Form(
       key: _formKey,
       child: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(20.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Vehicle Images
-                  VehicleImagePicker(
-                    imageUrls: _imageUrls,
-                    selectedImagePath: _selectedImagePath,
-                    onImageSelected: (imagePath) {
-                      setState(() {
-                        _selectedImagePath = imagePath;
-                      });
-                    },
-                    onImageRemoved: (index) {
-                      setState(() {
-                        if (index < _imageUrls.length) {
-                          _imageUrls.removeAt(index);
-                        }
-                      });
-                    },
-                  ),
+                  // Vehicle Image Section
+                  _buildImageSection(),
+
+                  SizedBox(height: 32.h),
+
+                  // Basic Information
+                  _buildBasicInfoSection(),
 
                   SizedBox(height: 24.h),
 
-                  // Basic Information Section
-                  _buildSectionHeader('Basic Information'),
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.makeField(
-                    controller: _makeController,
-                    validator: (value) {
-                      if (value?.trim().isEmpty == true) {
-                        return 'Vehicle make is required';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.modelField(
-                    controller: _modelController,
-                    validator: (value) {
-                      if (value?.trim().isEmpty == true) {
-                        return 'Vehicle model is required';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: VehicleFormFields.yearField(
-                          controller: _yearController,
-                          validator: (value) {
-                            if (value?.trim().isEmpty == true) {
-                              return 'Year is required';
-                            }
-                            final year = int.tryParse(value!);
-                            if (year == null ||
-                                year < 1900 ||
-                                year > DateTime.now().year + 1) {
-                              return 'Invalid year';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: VehicleFormFields.colorField(
-                          controller: _colorController,
-                          validator: (value) {
-                            if (value?.trim().isEmpty == true) {
-                              return 'Color is required';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.vehicleTypeDropdown(
-                    value: _selectedType,
-                    onChanged: (type) {
-                      setState(() {
-                        _selectedType = type!;
-                      });
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: VehicleFormFields.fuelTypeDropdown(
-                          value: _selectedFuelType,
-                          onChanged: (fuelType) {
-                            setState(() {
-                              _selectedFuelType = fuelType!;
-                            });
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: VehicleFormFields.transmissionDropdown(
-                          value: _selectedTransmission,
-                          onChanged: (transmission) {
-                            setState(() {
-                              _selectedTransmission = transmission!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Registration Details
+                  _buildRegistrationSection(),
 
                   SizedBox(height: 24.h),
 
-                  // Registration Information Section
-                  _buildSectionHeader('Registration Information'),
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.plateNumberField(
-                    controller: _plateNumberController,
-                    validator: (value) {
-                      if (value?.trim().isEmpty == true) {
-                        return 'Plate number is required';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) => _validatePlateNumber(value),
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.engineNumberField(
-                    controller: _engineNumberController,
-                    validator: (value) {
-                      if (value?.trim().isEmpty == true) {
-                        return 'Engine number is required';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.chassisNumberField(
-                    controller: _chassisNumberController,
-                    validator: (value) {
-                      if (value?.trim().isEmpty == true) {
-                        return 'Chassis number is required';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.vinField(controller: _vinController),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.registrationNumberField(
-                    controller: _registrationNumberController,
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.mileageField(
-                    controller: _mileageController,
-                    validator: (value) {
-                      if (value?.trim().isNotEmpty == true) {
-                        final mileage = int.tryParse(value!);
-                        if (mileage == null || mileage < 0) {
-                          return 'Invalid mileage';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // Dates Section
-                  _buildSectionHeader('Important Dates'),
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.dateField(
-                    label: 'Registration Date',
-                    value: _registrationDate,
-                    onChanged: (date) {
-                      setState(() {
-                        _registrationDate = date;
-                      });
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.dateField(
-                    label: 'Insurance Expiry',
-                    value: _insuranceExpiry,
-                    onChanged: (date) {
-                      setState(() {
-                        _insuranceExpiry = date;
-                      });
-                    },
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  VehicleFormFields.dateField(
-                    label: 'Inspection Expiry',
-                    value: _inspectionExpiry,
-                    onChanged: (date) {
-                      setState(() {
-                        _inspectionExpiry = date;
-                      });
-                    },
-                  ),
+                  // Additional Information
+                  _buildAdditionalInfoSection(),
 
                   if (_isEditing) ...[
                     SizedBox(height: 24.h),
-
-                    // Status Section
-                    _buildSectionHeader('Vehicle Status'),
-                    SizedBox(height: 16.h),
-
-                    VehicleFormFields.statusDropdown(
-                      value: _selectedStatus,
-                      onChanged: (status) {
-                        setState(() {
-                          _selectedStatus = status!;
-                        });
-                      },
-                    ),
+                    _buildStatusSection(),
                   ],
 
-                  SizedBox(height: 32.h),
+                  SizedBox(height: 100.h), // Space for floating button
                 ],
               ),
             ),
           ),
 
           // Save Button
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              border: Border(
-                top: BorderSide(
-                  color: Theme.of(context).dividerColor,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : () => _saveVehicle(userId),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                ),
-                child: _isLoading
-                    ? SizedBox(
-                        width: 20.w,
-                        height: 20.w,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : Text(_isEditing ? 'Update Vehicle' : 'Add Vehicle'),
-              ),
-            ),
-          ),
+          _buildSaveButton(userId),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18.sp,
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).textTheme.titleMedium?.color,
+  Widget _buildImageSection() {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.only(bottom: 16.h),
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4.w,
+                  height: 24.h,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  'Vehicle Photos',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Add photos to showcase your vehicle',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(height: 20.h),
+            VehicleImagePicker(
+              imageUrls: _imageUrls,
+              selectedImagePath: _selectedImagePath,
+              onImageSelected: (imagePath) {
+                setState(() {
+                  _selectedImagePath = imagePath;
+                });
+              },
+              onImageRemoved: (index) {
+                setState(() {
+                  if (index < _imageUrls.length) {
+                    _imageUrls.removeAt(index);
+                  }
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBasicInfoSection() {
+    return _buildSection(
+      title: 'Basic Information',
+      children: [
+        _buildTextField(
+          controller: _makeController,
+          label: 'Vehicle Make',
+          hint: 'e.g., Toyota, Honda, BMW',
+          validator: (value) {
+            if (value?.trim().isEmpty == true) {
+              return 'Vehicle make is required';
+            }
+            return null;
+          },
+        ),
+
+        SizedBox(height: 16.h),
+
+        _buildTextField(
+          controller: _modelController,
+          label: 'Vehicle Model',
+          hint: 'e.g., Camry, Civic, X5',
+          validator: (value) {
+            if (value?.trim().isEmpty == true) {
+              return 'Vehicle model is required';
+            }
+            return null;
+          },
+        ),
+
+        SizedBox(height: 16.h),
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _yearController,
+                label: 'Year',
+                hint: '2024',
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value?.trim().isEmpty == true) {
+                    return 'Year is required';
+                  }
+                  final year = int.tryParse(value!);
+                  if (year == null ||
+                      year < 1900 ||
+                      year > DateTime.now().year + 1) {
+                    return 'Invalid year';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: _buildTextField(
+                controller: _colorController,
+                label: 'Color',
+                hint: 'White, Black, Red',
+                validator: (value) {
+                  if (value?.trim().isEmpty == true) {
+                    return 'Color is required';
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ],
+        ),
+
+        SizedBox(height: 16.h),
+
+        _buildDropdown<VehicleType>(
+          value: _selectedType,
+          label: 'Vehicle Type',
+          items: VehicleType.values,
+          itemBuilder: (type) => type.displayName,
+          onChanged: (type) {
+            setState(() {
+              _selectedType = type!;
+            });
+          },
+        ),
+
+        SizedBox(height: 16.h),
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildDropdown<FuelType>(
+                value: _selectedFuelType,
+                label: 'Fuel Type',
+                items: FuelType.values,
+                itemBuilder: (fuel) => fuel.displayName,
+                onChanged: (fuel) {
+                  setState(() {
+                    _selectedFuelType = fuel!;
+                  });
+                },
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: _buildDropdown<TransmissionType>(
+                value: _selectedTransmission,
+                label: 'Transmission',
+                items: TransmissionType.values,
+                itemBuilder: (trans) => trans.displayName,
+                onChanged: (trans) {
+                  setState(() {
+                    _selectedTransmission = trans!;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegistrationSection() {
+    return _buildSection(
+      title: 'Registration Details',
+      children: [
+        _buildTextField(
+          controller: _plateNumberController,
+          label: 'Plate Number',
+          hint: 'T123ABC',
+          textCapitalization: TextCapitalization.characters,
+          validator: (value) {
+            if (value?.trim().isEmpty == true) {
+              return 'Plate number is required';
+            }
+            return null;
+          },
+          onChanged: (value) => _validatePlateNumber(value),
+        ),
+
+        SizedBox(height: 16.h),
+
+        _buildTextField(
+          controller: _engineNumberController,
+          label: 'Engine Number',
+          hint: 'ENG123456789',
+          validator: (value) {
+            if (value?.trim().isEmpty == true) {
+              return 'Engine number is required';
+            }
+            return null;
+          },
+        ),
+
+        SizedBox(height: 16.h),
+
+        _buildTextField(
+          controller: _chassisNumberController,
+          label: 'Chassis Number',
+          hint: 'CHS123456789',
+          validator: (value) {
+            if (value?.trim().isEmpty == true) {
+              return 'Chassis number is required';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdditionalInfoSection() {
+    return _buildSection(
+      title: 'Additional Information',
+      children: [
+        _buildTextField(
+          controller: _vinController,
+          label: 'VIN (Optional)',
+          hint: 'Vehicle Identification Number',
+        ),
+
+        SizedBox(height: 16.h),
+
+        _buildTextField(
+          controller: _registrationNumberController,
+          label: 'Registration Number (Optional)',
+          hint: 'Registration certificate number',
+        ),
+
+        SizedBox(height: 16.h),
+
+        _buildTextField(
+          controller: _mileageController,
+          label: 'Mileage (Optional)',
+          hint: 'Current mileage in km',
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value?.trim().isNotEmpty == true) {
+              final mileage = int.tryParse(value!);
+              if (mileage == null || mileage < 0) {
+                return 'Invalid mileage';
+              }
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusSection() {
+    return _buildSection(
+      title: 'Vehicle Status',
+      children: [
+        _buildDropdown<VehicleStatus>(
+          value: _selectedStatus,
+          label: 'Status',
+          items: VehicleStatus.values,
+          itemBuilder: (status) => status.displayName,
+          onChanged: (status) {
+            setState(() {
+              _selectedStatus = status!;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.only(bottom: 16.h),
+      child: Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4.w,
+                  height: 24.h,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    String? Function(String?)? validator,
+    void Function(String)? onChanged,
+    TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+  }) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
+      decoration: InputDecoration(labelText: label, hintText: hint),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required T value,
+    required String label,
+    required List<T> items,
+    required String Function(T) itemBuilder,
+    required void Function(T?) onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      onChanged: onChanged,
+      decoration: InputDecoration(labelText: label),
+      items: items.map((item) {
+        return DropdownMenuItem<T>(value: item, child: Text(itemBuilder(item)));
+      }).toList(),
+    );
+  }
+
+  Widget _buildSaveButton(String userId) {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          height: 48.h,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : () => _saveVehicle(userId),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            child: _isLoading
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  )
+                : Text(
+                    _isEditing ? 'Update Vehicle' : 'Add Vehicle',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildLoadingState() {
-    return const Center(child: CircularProgressIndicator());
-  }
-
-  Widget _buildErrorState(String error) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.sp,
-            color: Theme.of(context).colorScheme.error,
-          ),
+          const CircularProgressIndicator(),
           SizedBox(height: 16.h),
           Text(
-            'Failed to load vehicle',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            error,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Theme.of(context).hintColor,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () => context.pop(),
-            child: const Text('Go Back'),
+            'Loading vehicle data...',
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.sp,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Failed to load vehicle',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              error,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: () => context.pop(),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNotSignedInState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.directions_car,
-            size: 100.sp,
-            color: Theme.of(context).hintColor,
-          ),
-          SizedBox(height: 24.h),
-          Text(
-            'Not Signed In',
-            style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            'Please sign in to add vehicles',
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Theme.of(context).hintColor,
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.directions_car_outlined,
+              size: 64.sp,
+              color: Theme.of(context).colorScheme.primary,
             ),
-          ),
-          SizedBox(height: 24.h),
-          ElevatedButton(
-            onPressed: () => context.go('/auth/login'),
-            child: const Text('Sign In'),
-          ),
-        ],
+            SizedBox(height: 16.h),
+            Text(
+              'Authentication Required',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Please sign in to add or edit vehicles',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: () => context.go('/auth/login'),
+              child: const Text('Sign In'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -659,7 +833,9 @@ class _AddEditVehicleScreenState extends ConsumerState<AddEditVehicleScreen> {
               Navigator.pop(context);
               await _deleteVehicle();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -700,13 +876,37 @@ class _AddEditVehicleScreenState extends ConsumerState<AddEditVehicleScreen> {
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.w),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      ),
     );
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onError,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.error,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.w),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      ),
     );
   }
 }

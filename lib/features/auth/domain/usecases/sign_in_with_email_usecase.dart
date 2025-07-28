@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/validators.dart';
 import '../entities/user.dart';
 import '../repositories/auth_repository.dart';
@@ -19,7 +19,10 @@ class SignInWithEmailUseCase {
       return Left(ValidationFailure(emailValidation));
     }
 
-    final passwordValidation = Validators.validateRequired(password, 'Password');
+    final passwordValidation = Validators.validateRequired(
+      password,
+      'Password',
+    );
     if (passwordValidation != null) {
       return Left(ValidationFailure(passwordValidation));
     }

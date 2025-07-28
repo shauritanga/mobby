@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/product.dart';
 
-part 'product_model.g.dart';
-
-@JsonSerializable()
 class ProductModel extends Product {
   const ProductModel({
     required super.id,
@@ -28,10 +24,60 @@ class ProductModel extends Product {
     required super.updatedAt,
   });
 
-  factory ProductModel.fromJson(Map<String, dynamic> json) =>
-      _$ProductModelFromJson(json);
+  factory ProductModel.fromMap(Map<String, dynamic> map) {
+    return ProductModel(
+      id: map['id'] ?? "",
+      name: map['name'] ?? "",
+      description: map['description'] ?? "",
+      price: (map['price'] as num).toDouble(),
+      originalPrice: (map['originalPrice'] as num?)?.toDouble(),
+      imageUrl: map['imageUrl'] ?? "",
+      imageUrls: List<String>.from(map['imageUrls'] as List),
+      categoryId: map['categoryId'] ?? "",
+      categoryName: map['categoryName'] ?? "",
+      brand: map['brand'] ?? "",
+      sku: map['sku'] ?? "",
+      stockQuantity: map['stockQuantity'] as int,
+      rating: (map['rating'] as num).toDouble(),
+      reviewCount: map['reviewCount'] as int,
+      isFeatured: map['isFeatured'] as bool,
+      isActive: map['isActive'] as bool,
+      tags: List<String>.from(map['tags'] as List),
+      specifications: Map<String, String>.from(map['specifications'] as Map),
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      updatedAt: DateTime.parse(map['updatedAt'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$ProductModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'price': price,
+      'originalPrice': originalPrice,
+      'imageUrl': imageUrl,
+      'imageUrls': imageUrls,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'brand': brand,
+      'sku': sku,
+      'stockQuantity': stockQuantity,
+      'rating': rating,
+      'reviewCount': reviewCount,
+      'isFeatured': isFeatured,
+      'isActive': isActive,
+      'tags': tags,
+      'specifications': specifications,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory ProductModel.fromJson(Map<String, dynamic> json) =>
+      ProductModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory ProductModel.fromEntity(Product product) {
     return ProductModel(

@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../domain/entities/brand.dart';
 import '../../domain/entities/product.dart';
 import '../providers/product_providers_setup.dart';
-import '../providers/simple_providers.dart';
 import '../widgets/brand_header_section.dart';
 import '../widgets/brand_info_card.dart';
 import '../widgets/brand_filter_bar.dart';

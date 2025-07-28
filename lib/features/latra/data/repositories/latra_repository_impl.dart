@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/latra_application.dart';
 import '../../domain/entities/latra_status.dart';
 import '../../domain/entities/latra_document.dart';
@@ -9,8 +9,6 @@ import '../../domain/repositories/latra_repository.dart';
 import '../datasources/latra_remote_datasource.dart';
 import '../datasources/latra_local_datasource.dart';
 import '../models/latra_application_model.dart';
-import '../models/latra_status_model.dart';
-import '../models/latra_document_model.dart';
 
 /// LATRA repository implementation
 /// Following specifications from FEATURES_DOCUMENTATION.md - LATRA Integration Feature

@@ -13,17 +13,17 @@ abstract class ProductLocalDataSource {
   Future<List<ProductModel>> getPopularProducts();
   Future<List<ProductModel>> getNewProducts();
   Future<List<ProductModel>> getSaleProducts();
-  
+
   Future<List<BrandModel>> getBrands();
   Future<BrandModel?> getBrandById(String id);
-  
+
   Future<List<ReviewModel>> getProductReviews(String productId);
   Future<ReviewModel?> getReviewById(String id);
-  
+
   Future<List<String>> getSearchHistory();
   Future<List<ProductModel>> getRecentlyViewedProducts(String userId);
   Future<List<ProductModel>> getWishlistProducts(String userId);
-  
+
   Future<void> cacheProducts(List<ProductModel> products);
   Future<void> cacheBrands(List<BrandModel> brands);
   Future<void> cacheReviews(List<ReviewModel> reviews);
@@ -31,7 +31,7 @@ abstract class ProductLocalDataSource {
   Future<void> addToRecentlyViewed(String userId, String productId);
   Future<void> addToWishlist(String userId, String productId);
   Future<void> removeFromWishlist(String userId, String productId);
-  
+
   Future<void> clearCache();
   Future<bool> isCacheValid();
   Future<DateTime?> getLastCacheTime();
@@ -39,7 +39,7 @@ abstract class ProductLocalDataSource {
 
 class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   final SharedPreferences _prefs;
-  
+
   // Cache keys
   static const String _productsKey = 'cached_products';
   static const String _brandsKey = 'cached_brands';
@@ -48,11 +48,12 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   static const String _recentlyViewedKey = 'recently_viewed';
   static const String _wishlistKey = 'wishlist';
   static const String _cacheTimeKey = 'cache_time';
-  
+
   // Cache duration (1 hour)
   static const Duration _cacheDuration = Duration(hours: 1);
 
-  ProductLocalDataSourceImpl({required SharedPreferences prefs}) : _prefs = prefs;
+  ProductLocalDataSourceImpl({required SharedPreferences prefs})
+    : _prefs = prefs;
 
   @override
   Future<ProductModel?> getProductById(String id) async {
@@ -72,10 +73,10 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final productsJson = _prefs.getString(_productsKey);
       if (productsJson == null) return [];
-      
+
       final List<dynamic> productsList = json.decode(productsJson);
       return productsList
-          .map((json) => ProductModel.fromJson(json as Map<String, dynamic>))
+          .map((json) => ProductModel.fromMap(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       print('Error getting cached products: $e');
@@ -92,9 +93,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   @override
   Future<List<ProductModel>> getPopularProducts() async {
     final products = await getProducts();
-    final popularProducts = products
-        .where((p) => p.isActive)
-        .toList()
+    final popularProducts = products.where((p) => p.isActive).toList()
       ..sort((a, b) {
         final aScore = a.reviewCount * a.rating;
         final bScore = b.reviewCount * b.rating;
@@ -106,9 +105,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   @override
   Future<List<ProductModel>> getNewProducts() async {
     final products = await getProducts();
-    final newProducts = products
-        .where((p) => p.isActive)
-        .toList()
+    final newProducts = products.where((p) => p.isActive).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return newProducts;
   }
@@ -124,7 +121,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final brandsJson = _prefs.getString(_brandsKey);
       if (brandsJson == null) return [];
-      
+
       final List<dynamic> brandsList = json.decode(brandsJson);
       return brandsList
           .map((json) => BrandModel.fromJson(json as Map<String, dynamic>))
@@ -153,12 +150,12 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final reviewsJson = _prefs.getString(_reviewsKey);
       if (reviewsJson == null) return [];
-      
+
       final List<dynamic> reviewsList = json.decode(reviewsJson);
       final allReviews = reviewsList
           .map((json) => ReviewModel.fromJson(json as Map<String, dynamic>))
           .toList();
-      
+
       return allReviews.where((r) => r.productId == productId).toList();
     } catch (e) {
       print('Error getting cached reviews: $e');
@@ -171,12 +168,12 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final reviewsJson = _prefs.getString(_reviewsKey);
       if (reviewsJson == null) return null;
-      
+
       final List<dynamic> reviewsList = json.decode(reviewsJson);
       final allReviews = reviewsList
           .map((json) => ReviewModel.fromJson(json as Map<String, dynamic>))
           .toList();
-      
+
       return allReviews.firstWhere(
         (review) => review.id == id,
         orElse: () => throw Exception('Review not found'),
@@ -200,12 +197,14 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   @override
   Future<List<ProductModel>> getRecentlyViewedProducts(String userId) async {
     try {
-      final recentlyViewedJson = _prefs.getString('${_recentlyViewedKey}_$userId');
+      final recentlyViewedJson = _prefs.getString(
+        '${_recentlyViewedKey}_$userId',
+      );
       if (recentlyViewedJson == null) return [];
-      
+
       final List<dynamic> productIds = json.decode(recentlyViewedJson);
       final products = await getProducts();
-      
+
       final recentlyViewed = <ProductModel>[];
       for (final id in productIds) {
         try {
@@ -215,7 +214,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
           // Product not found in cache, skip
         }
       }
-      
+
       return recentlyViewed;
     } catch (e) {
       print('Error getting recently viewed products: $e');
@@ -228,10 +227,10 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final wishlistJson = _prefs.getString('${_wishlistKey}_$userId');
       if (wishlistJson == null) return [];
-      
+
       final List<dynamic> productIds = json.decode(wishlistJson);
       final products = await getProducts();
-      
+
       final wishlistProducts = <ProductModel>[];
       for (final id in productIds) {
         try {
@@ -241,7 +240,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
           // Product not found in cache, skip
         }
       }
-      
+
       return wishlistProducts;
     } catch (e) {
       print('Error getting wishlist products: $e');
@@ -253,7 +252,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   Future<void> cacheProducts(List<ProductModel> products) async {
     try {
       final productsJson = json.encode(
-        products.map((product) => product.toJson()).toList(),
+        products.map((product) => product.toMap()).toList(),
       );
       await _prefs.setString(_productsKey, productsJson);
       await _prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
@@ -290,18 +289,18 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
   Future<void> addToSearchHistory(String query) async {
     try {
       final searchHistory = _prefs.getStringList(_searchHistoryKey) ?? [];
-      
+
       // Remove if already exists to avoid duplicates
       searchHistory.remove(query);
-      
+
       // Add to beginning
       searchHistory.insert(0, query);
-      
+
       // Keep only last 20 searches
       if (searchHistory.length > 20) {
         searchHistory.removeRange(20, searchHistory.length);
       }
-      
+
       await _prefs.setStringList(_searchHistoryKey, searchHistory);
     } catch (e) {
       print('Error adding to search history: $e');
@@ -313,23 +312,23 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final key = '${_recentlyViewedKey}_$userId';
       final recentlyViewedJson = _prefs.getString(key);
-      
+
       List<dynamic> productIds = [];
       if (recentlyViewedJson != null) {
         productIds = json.decode(recentlyViewedJson);
       }
-      
+
       // Remove if already exists
       productIds.remove(productId);
-      
+
       // Add to beginning
       productIds.insert(0, productId);
-      
+
       // Keep only last 20 products
       if (productIds.length > 20) {
         productIds.removeRange(20, productIds.length);
       }
-      
+
       await _prefs.setString(key, json.encode(productIds));
     } catch (e) {
       print('Error adding to recently viewed: $e');
@@ -341,12 +340,12 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final key = '${_wishlistKey}_$userId';
       final wishlistJson = _prefs.getString(key);
-      
+
       List<dynamic> productIds = [];
       if (wishlistJson != null) {
         productIds = json.decode(wishlistJson);
       }
-      
+
       // Add if not already exists
       if (!productIds.contains(productId)) {
         productIds.add(productId);
@@ -362,7 +361,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final key = '${_wishlistKey}_$userId';
       final wishlistJson = _prefs.getString(key);
-      
+
       if (wishlistJson != null) {
         final List<dynamic> productIds = json.decode(wishlistJson);
         productIds.remove(productId);
@@ -390,10 +389,10 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final cacheTime = await getLastCacheTime();
       if (cacheTime == null) return false;
-      
+
       final now = DateTime.now();
       final difference = now.difference(cacheTime);
-      
+
       return difference < _cacheDuration;
     } catch (e) {
       print('Error checking cache validity: $e');
@@ -406,7 +405,7 @@ class ProductLocalDataSourceImpl implements ProductLocalDataSource {
     try {
       final cacheTimeMs = _prefs.getInt(_cacheTimeKey);
       if (cacheTimeMs == null) return null;
-      
+
       return DateTime.fromMillisecondsSinceEpoch(cacheTimeMs);
     } catch (e) {
       print('Error getting cache time: $e');

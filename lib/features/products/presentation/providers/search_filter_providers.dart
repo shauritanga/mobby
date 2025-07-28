@@ -1,18 +1,11 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/product_filter.dart';
 import '../../domain/entities/product_search_result.dart';
 import 'product_providers.dart';
 
-part 'search_filter_providers.g.dart';
-
 // Search State Management
-@riverpod
-class SearchState extends _$SearchState {
-  @override
-  String build() {
-    return '';
-  }
+class SearchStateNotifier extends StateNotifier<String> {
+  SearchStateNotifier() : super('');
 
   void updateQuery(String query) {
     state = query;
@@ -23,13 +16,15 @@ class SearchState extends _$SearchState {
   }
 }
 
+final searchStateProvider = StateNotifierProvider<SearchStateNotifier, String>((
+  ref,
+) {
+  return SearchStateNotifier();
+});
+
 // Filter State Management
-@riverpod
-class FilterState extends _$FilterState {
-  @override
-  ProductFilter build() {
-    return const ProductFilter();
-  }
+class FilterStateNotifier extends StateNotifier<ProductFilter> {
+  FilterStateNotifier() : super(const ProductFilter());
 
   void updateFilter(ProductFilter filter) {
     state = filter;
@@ -149,48 +144,45 @@ class FilterState extends _$FilterState {
   }
 }
 
+final filterStateProvider =
+    StateNotifierProvider<FilterStateNotifier, ProductFilter>((ref) {
+      return FilterStateNotifier();
+    });
+
 // Search Results Provider
-@riverpod
-Future<ProductSearchResult> searchResults(Ref ref) async {
+final searchResultsProvider = FutureProvider<ProductSearchResult>((ref) async {
   final searchQuery = ref.watch(searchStateProvider);
   final filter = ref.watch(filterStateProvider);
 
-  if (searchQuery.isEmpty && !filter.hasFilters) {
-    // Return empty result if no search query or filters
-    return const ProductSearchResult(
-      products: [],
-      totalCount: 0,
-      currentPage: 1,
-      totalPages: 0,
-      hasNextPage: false,
-      hasPreviousPage: false,
-    );
-  }
-
+  // Create search filter with current query and filters
   final searchFilter = filter.copyWith(
     searchQuery: searchQuery.isEmpty ? null : searchQuery,
   );
 
+  // If there's a search query, use search provider
   if (searchQuery.isNotEmpty) {
     return await ref.watch(
       searchProductsProvider((query: searchQuery, filter: searchFilter)).future,
     );
   } else {
+    // If no search query, show all products with current filters
+    // This ensures products are always shown when no search is active
     return await ref.watch(productsProvider(searchFilter).future);
   }
-}
+});
 
 // Search Suggestions Provider
-@riverpod
-Future<List<String>> searchSuggestionsForQuery(Ref ref, String query) async {
-  if (query.length < 2) return [];
+final searchSuggestionsForQueryProvider =
+    FutureProvider.family<List<String>, String>((ref, query) async {
+      if (query.length < 2) return [];
 
-  return await ref.watch(searchSuggestionsProvider(query).future);
-}
+      return await ref.watch(searchSuggestionsProvider(query).future);
+    });
 
 // Active Search and Filter Provider
-@riverpod
-Future<ProductSearchResult> activeSearchAndFilter(Ref ref) async {
+final activeSearchAndFilterProvider = FutureProvider<ProductSearchResult>((
+  ref,
+) async {
   final searchQuery = ref.watch(searchStateProvider);
   final filter = ref.watch(filterStateProvider);
 
@@ -200,22 +192,19 @@ Future<ProductSearchResult> activeSearchAndFilter(Ref ref) async {
   );
 
   return await ref.watch(productsProvider(activeFilter).future);
-}
+});
 
 // Pagination State
-@riverpod
-class PaginationState extends _$PaginationState {
-  @override
-  Map<String, dynamic> build() {
-    return {
-      'currentPage': 1,
-      'totalPages': 0,
-      'totalCount': 0,
-      'hasNextPage': false,
-      'hasPreviousPage': false,
-      'isLoading': false,
-    };
-  }
+class PaginationStateNotifier extends StateNotifier<Map<String, dynamic>> {
+  PaginationStateNotifier()
+    : super({
+        'currentPage': 1,
+        'totalPages': 0,
+        'totalCount': 0,
+        'hasNextPage': false,
+        'hasPreviousPage': false,
+        'isLoading': false,
+      });
 
   void updateFromSearchResult(ProductSearchResult result) {
     state = {
@@ -251,13 +240,14 @@ class PaginationState extends _$PaginationState {
   bool get isLoading => state['isLoading'] as bool;
 }
 
+final paginationStateProvider =
+    StateNotifierProvider<PaginationStateNotifier, Map<String, dynamic>>((ref) {
+      return PaginationStateNotifier();
+    });
+
 // Search History Provider
-@riverpod
-class SearchHistoryState extends _$SearchHistoryState {
-  @override
-  List<String> build() {
-    return [];
-  }
+class SearchHistoryStateNotifier extends StateNotifier<List<String>> {
+  SearchHistoryStateNotifier() : super([]);
 
   void addSearch(String query) {
     if (query.trim().isEmpty) return;
@@ -289,27 +279,29 @@ class SearchHistoryState extends _$SearchHistoryState {
   }
 }
 
-// Quick Filter Presets
-@riverpod
-class QuickFilters extends _$QuickFilters {
-  @override
-  Map<String, ProductFilter> build() {
-    return {
-      'featured': const ProductFilter(isFeatured: true),
-      'on_sale': const ProductFilter(isOnSale: true),
-      'high_rated': const ProductFilter(minRating: 4.0),
-      'in_stock': const ProductFilter(
-        availability: ProductAvailability.inStock,
-      ),
-      'price_low_high': const ProductFilter(sortBy: SortOption.priceAsc),
-      'price_high_low': const ProductFilter(sortBy: SortOption.priceDesc),
-      'newest': const ProductFilter(sortBy: SortOption.newest),
-      'popular': const ProductFilter(sortBy: SortOption.popular),
-      'best_rated': const ProductFilter(sortBy: SortOption.ratingDesc),
-    };
-  }
+final searchHistoryStateProvider =
+    StateNotifierProvider<SearchHistoryStateNotifier, List<String>>((ref) {
+      return SearchHistoryStateNotifier();
+    });
 
-  void applyQuickFilter(String filterKey) {
+// Quick Filter Presets
+class QuickFiltersNotifier extends StateNotifier<Map<String, ProductFilter>> {
+  QuickFiltersNotifier()
+    : super({
+        'featured': const ProductFilter(isFeatured: true),
+        'on_sale': const ProductFilter(isOnSale: true),
+        'high_rated': const ProductFilter(minRating: 4.0),
+        'in_stock': const ProductFilter(
+          availability: ProductAvailability.inStock,
+        ),
+        'price_low_high': const ProductFilter(sortBy: SortOption.priceAsc),
+        'price_high_low': const ProductFilter(sortBy: SortOption.priceDesc),
+        'newest': const ProductFilter(sortBy: SortOption.newest),
+        'popular': const ProductFilter(sortBy: SortOption.popular),
+        'best_rated': const ProductFilter(sortBy: SortOption.ratingDesc),
+      });
+
+  void applyQuickFilter(String filterKey, WidgetRef ref) {
     final quickFilter = state[filterKey];
     if (quickFilter != null) {
       ref.read(filterStateProvider.notifier).updateFilter(quickFilter);
@@ -322,6 +314,13 @@ class QuickFilters extends _$QuickFilters {
 
   List<String> get availableFilters => state.keys.toList();
 }
+
+final quickFiltersProvider =
+    StateNotifierProvider<QuickFiltersNotifier, Map<String, ProductFilter>>((
+      ref,
+    ) {
+      return QuickFiltersNotifier();
+    });
 
 // Search and Filter Utility Extensions
 extension SearchFilterExtension on WidgetRef {
@@ -340,7 +339,7 @@ extension SearchFilterExtension on WidgetRef {
 
   /// Apply quick filter
   void applyQuickFilter(String filterKey) {
-    read(quickFiltersProvider.notifier).applyQuickFilter(filterKey);
+    read(quickFiltersProvider.notifier).applyQuickFilter(filterKey, this);
     read(filterStateProvider.notifier).resetPage();
   }
 

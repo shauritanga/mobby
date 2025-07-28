@@ -82,7 +82,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     final searchResults = ref.read(searchResultsProvider);
 
     searchResults.whenData((result) {
-      if ((result as ProductSearchResult).hasNextPage) {
+      if ((result).hasNextPage) {
         ref.read(filterStateProvider.notifier).nextPage();
       }
     });
@@ -141,8 +141,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
           // Product List/Grid
           Expanded(
             child: searchResults.when(
-              data: (result) =>
-                  _buildProductList(result as ProductSearchResult),
+              data: (result) => _buildProductList(result),
               loading: () => ProductLoadingGrid(isGridView: _isGridView),
               error: (error, stack) => ProductErrorWidget(
                 error: error.toString(),

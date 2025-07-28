@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/validators.dart';
 import '../entities/user.dart';
 import '../repositories/auth_repository.dart';
@@ -33,7 +33,4 @@ class VerifyOtpUseCase {
   }
 }
 
-enum OtpType {
-  phone,
-  email,
-}
+enum OtpType { phone, email }

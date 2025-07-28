@@ -41,15 +41,34 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   @override
   Future<List<BannerModel>> getBanners() async {
     try {
+      print('🔍 Fetching all banners from Firestore...');
+
       final querySnapshot = await _firestore
           .collection('banners')
           .orderBy('priority', descending: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => BannerModel.fromJson({'id': doc.id, ...doc.data()}))
-          .toList();
+      print('📊 Found ${querySnapshot.docs.length} total banners');
+
+      return querySnapshot.docs.map((doc) {
+        final data = {'id': doc.id, ...doc.data()};
+
+        // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+        if (data['createdAt'] is Timestamp) {
+          data['createdAt'] = (data['createdAt'] as Timestamp)
+              .toDate()
+              .toIso8601String();
+        }
+        if (data['expiresAt'] is Timestamp) {
+          data['expiresAt'] = (data['expiresAt'] as Timestamp)
+              .toDate()
+              .toIso8601String();
+        }
+
+        return BannerModel.fromJson(data);
+      }).toList();
     } catch (e) {
+      print('❌ Error fetching banners: $e');
       throw Exception('Failed to fetch banners: $e');
     }
   }
@@ -57,18 +76,46 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   @override
   Future<List<BannerModel>> getActiveBanners() async {
     try {
-      final now = DateTime.now();
+      print('🔍 Fetching active banners from Firestore...');
+
+      // Ultra-simplified query to avoid any index requirements
       final querySnapshot = await _firestore
           .collection('banners')
           .where('isActive', isEqualTo: true)
-          .where('expiresAt', isGreaterThan: now)
-          .orderBy('expiresAt')
-          .orderBy('priority', descending: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => BannerModel.fromJson({'id': doc.id, ...doc.data()}))
+      final now = DateTime.now();
+      final activeBanners = querySnapshot.docs
+          .map((doc) {
+            final data = {'id': doc.id, ...doc.data()};
+
+            // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+            if (data['createdAt'] is Timestamp) {
+              data['createdAt'] = (data['createdAt'] as Timestamp)
+                  .toDate()
+                  .toIso8601String();
+            }
+            if (data['expiresAt'] is Timestamp) {
+              data['expiresAt'] = (data['expiresAt'] as Timestamp)
+                  .toDate()
+                  .toIso8601String();
+            }
+
+            return BannerModel.fromJson(data);
+          })
+          .where((banner) {
+            // Filter expired banners in application layer
+            if (banner.expiresAt == null) {
+              return true; // No expiry date means it doesn't expire
+            }
+            final isValid = banner.expiresAt!.isAfter(now);
+            return isValid;
+          })
           .toList();
+
+      // Sort by priority in application layer (descending)
+      activeBanners.sort((a, b) => b.priority.compareTo(a.priority));
+      return activeBanners;
     } catch (e) {
       throw Exception('Failed to fetch active banners: $e');
     }
@@ -80,7 +127,21 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       final doc = await _firestore.collection('banners').doc(id).get();
       if (!doc.exists) return null;
 
-      return BannerModel.fromJson({'id': doc.id, ...doc.data()!});
+      final data = {'id': doc.id, ...doc.data()!};
+
+      // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+      if (data['createdAt'] is Timestamp) {
+        data['createdAt'] = (data['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+      if (data['expiresAt'] is Timestamp) {
+        data['expiresAt'] = (data['expiresAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+
+      return BannerModel.fromJson(data);
     } catch (e) {
       throw Exception('Failed to fetch banner: $e');
     }
@@ -89,9 +150,28 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   @override
   Future<List<ProductModel>> getFeaturedProducts({int limit = 10}) async {
     try {
-      print('🔍 Fetching featured products from Firestore...');
+      // First, let's check if we have any products at all
+      print('🔍 Checking total products in collection...');
+      final totalSnapshot = await _firestore
+          .collection('products')
+          .get(); // Remove limit to see all products
+      print('📊 Total products in collection: ${totalSnapshot.docs.length}');
+
+      if (totalSnapshot.docs.isNotEmpty) {
+        print('📋 All products in collection:');
+        for (var doc in totalSnapshot.docs) {
+          final data = doc.data();
+          print('  - ID: ${doc.id}');
+          print('    isFeatured: ${data['isFeatured']}');
+          print('    isActive: ${data['isActive']}');
+          print('    name: ${data['name']}');
+          print('    stockQuantity: ${data['stockQuantity']}');
+          print('    ---');
+        }
+      }
 
       // Simplified query to avoid composite index requirements
+      print('🎯 Querying featured products...');
       final querySnapshot = await _firestore
           .collection('products')
           .where('isFeatured', isEqualTo: true)
@@ -99,13 +179,32 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
           .limit(limit * 2) // Get more to filter and sort in app
           .get();
 
-      print('📊 Raw query returned ${querySnapshot.docs.length} documents');
+      print(
+        '📦 Featured query returned ${querySnapshot.docs.length} documents',
+      );
 
       final products = querySnapshot.docs
+          .where((doc) => doc.exists)
           .map((doc) {
-            final data = {'id': doc.id, ...doc.data()};
-            print('📦 Product data: $data');
-            return ProductModel.fromJson(data);
+            try {
+              final data = {'id': doc.id, ...doc.data()};
+              // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+              if (data['createdAt'] is Timestamp) {
+                data['createdAt'] = (data['createdAt'] as Timestamp)
+                    .toDate()
+                    .toIso8601String();
+              }
+              if (data['updatedAt'] is Timestamp) {
+                data['updatedAt'] = (data['updatedAt'] as Timestamp)
+                    .toDate()
+                    .toIso8601String();
+              }
+
+              return ProductModel.fromJson(data);
+            } catch (e) {
+              print('❌ Error parsing product ${doc.id}: $e');
+              rethrow;
+            }
           })
           .where((product) => (product.stockQuantity ?? 0) > 0) // Filter in app
           .toList();
@@ -115,13 +214,56 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       // Sort in application layer
       products.sort((a, b) {
         // First by rating (descending), then by stock quantity (ascending)
-        final ratingComparison = (b.rating ?? 0.0).compareTo(a.rating ?? 0.0);
+        final ratingComparison = (b.rating).compareTo(a.rating);
         if (ratingComparison != 0) return ratingComparison;
-        return (a.stockQuantity ?? 0).compareTo(b.stockQuantity ?? 0);
+        return (a.stockQuantity).compareTo(b.stockQuantity);
       });
 
       final result = products.take(limit).toList();
       print('🎯 Final result: ${result.length} featured products');
+
+      // If no featured products found, try to get any active products as fallback
+      if (result.isEmpty) {
+        print('⚠️ No featured products found, trying fallback query...');
+        try {
+          final fallbackSnapshot = await _firestore
+              .collection('products')
+              .where('isActive', isEqualTo: true)
+              .limit(limit)
+              .get();
+
+          final fallbackProducts = fallbackSnapshot.docs
+              .where((doc) => doc.exists)
+              .map((doc) {
+                try {
+                  final data = {'id': doc.id, ...doc.data()};
+                  // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+                  if (data['createdAt'] is Timestamp) {
+                    data['createdAt'] = (data['createdAt'] as Timestamp)
+                        .toDate()
+                        .toIso8601String();
+                  }
+                  if (data['updatedAt'] is Timestamp) {
+                    data['updatedAt'] = (data['updatedAt'] as Timestamp)
+                        .toDate()
+                        .toIso8601String();
+                  }
+
+                  return ProductModel.fromJson(data);
+                } catch (e) {
+                  print('❌ Error parsing fallback product ${doc.id}: $e');
+                  rethrow;
+                }
+              })
+              .where((product) => (product.stockQuantity ?? 0) > 0)
+              .toList();
+
+          print('🔄 Fallback found ${fallbackProducts.length} active products');
+          return fallbackProducts;
+        } catch (fallbackError) {
+          print('❌ Fallback query also failed: $fallbackError');
+        }
+      }
 
       return result;
     } catch (e) {
@@ -144,9 +286,23 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
           .limit(limit * 2) // Get more to sort in app
           .get();
 
-      final products = querySnapshot.docs
-          .map((doc) => ProductModel.fromJson({'id': doc.id, ...doc.data()}))
-          .toList();
+      final products = querySnapshot.docs.map((doc) {
+        final data = {'id': doc.id, ...doc.data()};
+
+        // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+        if (data['createdAt'] is Timestamp) {
+          data['createdAt'] = (data['createdAt'] as Timestamp)
+              .toDate()
+              .toIso8601String();
+        }
+        if (data['updatedAt'] is Timestamp) {
+          data['updatedAt'] = (data['updatedAt'] as Timestamp)
+              .toDate()
+              .toIso8601String();
+        }
+
+        return ProductModel.fromJson(data);
+      }).toList();
 
       // Sort in application layer by rating (descending)
       products.sort((a, b) => (b.rating ?? 0.0).compareTo(a.rating ?? 0.0));
@@ -163,7 +319,21 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       final doc = await _firestore.collection('products').doc(id).get();
       if (!doc.exists) return null;
 
-      return ProductModel.fromJson({'id': doc.id, ...doc.data()!});
+      final data = {'id': doc.id, ...doc.data()!};
+
+      // Convert Firestore Timestamps to ISO8601 strings for JSON parsing
+      if (data['createdAt'] is Timestamp) {
+        data['createdAt'] = (data['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+      if (data['updatedAt'] is Timestamp) {
+        data['updatedAt'] = (data['updatedAt'] as Timestamp)
+            .toDate()
+            .toIso8601String();
+      }
+
+      return ProductModel.fromJson(data);
     } catch (e) {
       throw Exception('Failed to fetch product: $e');
     }

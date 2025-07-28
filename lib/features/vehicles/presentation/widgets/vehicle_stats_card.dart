@@ -35,77 +35,191 @@ class VehicleStatsCard extends ConsumerWidget {
         statistics['totalMaintenanceCost'] as double? ?? 0.0;
     final averageVehicleAge = statistics['averageVehicleAge'] as double? ?? 0.0;
 
-    return Card(
-      elevation: 1, // Reduced for Material 3 style
-      color: Theme.of(context).colorScheme.surfaceContainer,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20.r),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.surface,
+            Theme.of(
+              context,
+            ).colorScheme.surfaceContainer.withValues(alpha: 0.3),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(24.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Vehicle Overview',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).textTheme.titleMedium?.color,
-              ),
-            ),
-
-            SizedBox(height: 16.h),
-
-            // Main Stats Row
             Row(
               children: [
-                Expanded(
-                  child: _buildStatItem(
-                    context,
-                    Icons.directions_car,
-                    totalVehicles.toString(),
-                    'Total Vehicles',
-                    Theme.of(context).primaryColor,
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(
+                    Icons.analytics_rounded,
+                    size: 24.sp,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-
-                Container(
-                  width: 1,
-                  height: 40.h,
-                  color: Theme.of(context).dividerColor,
-                ),
-
+                SizedBox(width: 16.w),
                 Expanded(
-                  child: _buildStatItem(
-                    context,
-                    Icons.check_circle,
-                    activeVehicles.toString(),
-                    'Active',
-                    Colors.green,
-                  ),
-                ),
-
-                Container(
-                  width: 1,
-                  height: 40.h,
-                  color: Theme.of(context).dividerColor,
-                ),
-
-                Expanded(
-                  child: _buildStatItem(
-                    context,
-                    Icons.warning,
-                    (expiredDocuments + expiringSoonDocuments).toString(),
-                    'Alerts',
-                    expiredDocuments > 0 ? Colors.red : Colors.orange,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Vehicle Overview',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Your fleet at a glance',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
+            ),
+
+            SizedBox(height: 24.h),
+
+            // Enhanced main stats row
+            Container(
+              padding: EdgeInsets.all(20.w),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      Icons.directions_car_rounded,
+                      totalVehicles.toString(),
+                      'Total Vehicles',
+                      Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+
+                  Container(
+                    width: 2,
+                    height: 48.h,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.1),
+                          Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.3),
+                          Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(1.r),
+                    ),
+                  ),
+
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      Icons.check_circle_rounded,
+                      activeVehicles.toString(),
+                      'Active',
+                      Colors.green.shade600,
+                    ),
+                  ),
+
+                  Container(
+                    width: 2,
+                    height: 48.h,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.1),
+                          Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.3),
+                          Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(1.r),
+                    ),
+                  ),
+
+                  Expanded(
+                    child: _buildStatItem(
+                      context,
+                      Icons.warning_rounded,
+                      (expiredDocuments + expiringSoonDocuments).toString(),
+                      'Alerts',
+                      expiredDocuments > 0
+                          ? Colors.red.shade600
+                          : Colors.orange.shade600,
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             SizedBox(height: 16.h),
@@ -184,33 +298,51 @@ class VehicleStatsCard extends ConsumerWidget {
     return Column(
       children: [
         Container(
-          width: 40.w,
-          height: 40.w,
+          width: 48.w,
+          height: 48.w,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8.r),
+            gradient: LinearGradient(
+              colors: [
+                color.withValues(alpha: 0.2),
+                color.withValues(alpha: 0.1),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12.r),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: Icon(icon, size: 20.sp, color: color),
+          child: Icon(icon, size: 24.sp, color: color),
         ),
 
-        SizedBox(height: 8.h),
+        SizedBox(height: 12.h),
 
         Text(
           value,
           style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w800,
             color: color,
+            letterSpacing: -0.5,
           ),
         ),
 
-        SizedBox(height: 2.h),
+        SizedBox(height: 4.h),
 
         Text(
           label,
           style: TextStyle(
             fontSize: 12.sp,
-            color: Theme.of(context).textTheme.bodySmall?.color,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
           ),
           textAlign: TextAlign.center,
         ),

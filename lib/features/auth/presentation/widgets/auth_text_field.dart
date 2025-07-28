@@ -75,9 +75,10 @@ class _AuthTextFieldState extends State<AuthTextField>
       children: [
         Text(
           widget.label,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         SizedBox(height: 8.h),
         ScaleTransition(

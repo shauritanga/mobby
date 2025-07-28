@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../latra/domain/entities/latra_application.dart';
 import '../../../latra/domain/entities/latra_document.dart';
 import '../entities/verification_status.dart';
@@ -19,8 +19,10 @@ abstract class AdminLATRARepository {
     int limit = 20,
   });
 
-  Future<Either<Failure, LATRAApplication?>> getApplicationById(String applicationId);
-  
+  Future<Either<Failure, LATRAApplication?>> getApplicationById(
+    String applicationId,
+  );
+
   Future<Either<Failure, LATRAApplication>> updateApplicationStatus(
     String applicationId,
     LATRAApplicationStatus status,
@@ -86,7 +88,9 @@ abstract class AdminLATRARepository {
   // Integration Status Monitoring
   Future<Either<Failure, List<IntegrationStatus>>> getIntegrationStatuses();
 
-  Future<Either<Failure, IntegrationStatus?>> getIntegrationStatus(String serviceName);
+  Future<Either<Failure, IntegrationStatus?>> getIntegrationStatus(
+    String serviceName,
+  );
 
   Future<Either<Failure, IntegrationStatus>> updateIntegrationStatus(
     String serviceName,
@@ -144,8 +148,7 @@ abstract class AdminLATRARepository {
 
   // Search and Filtering
   Future<Either<Failure, List<LATRAApplication>>> searchApplications(
-    String query,
-    {
+    String query, {
     LATRAApplicationStatus? status,
     LATRAApplicationType? type,
     int page = 1,
@@ -153,8 +156,7 @@ abstract class AdminLATRARepository {
   });
 
   Future<Either<Failure, List<LATRADocument>>> searchDocuments(
-    String query,
-    {
+    String query, {
     LATRADocumentStatus? status,
     LATRADocumentType? type,
     int page = 1,

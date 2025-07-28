@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
-import '../../../../core/errors/exceptions.dart';
+import '../../../../core/error/failures.dart';
+import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../../domain/entities/address.dart';
@@ -45,7 +45,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
         return Right(userModel.toEntity());
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {
@@ -95,7 +95,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
         return const Right(null);
       } on AuthenticationException catch (e) {
-        return Left(AuthenticationFailure(e.message));
+        return Left(AuthFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } catch (e) {

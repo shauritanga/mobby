@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/errors/exceptions.dart';
+import '../../../../core/error/exceptions.dart';
 import '../models/vehicle_model.dart';
 import '../models/document_model.dart';
 import '../models/maintenance_record_model.dart';

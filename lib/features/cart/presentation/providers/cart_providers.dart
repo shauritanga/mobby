@@ -1,191 +1,258 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../domain/entities/cart.dart';
-import '../../domain/entities/cart_item.dart';
+import '../../../../core/providers/core_providers.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../products/domain/entities/product.dart';
+import '../../domain/entities/cart.dart';
+import '../../domain/repositories/cart_repository.dart';
+import '../../domain/usecases/add_to_cart_usecase.dart';
+import '../../domain/usecases/remove_from_cart_usecase.dart';
+import '../../domain/usecases/update_cart_item_usecase.dart';
+import '../../domain/usecases/get_cart_usecase.dart';
+import '../../domain/usecases/clear_cart_usecase.dart';
+import '../../domain/usecases/apply_coupon_usecase.dart';
+import '../../domain/usecases/watch_cart_usecase.dart';
+import '../../data/datasources/cart_local_datasource.dart';
+import '../../data/datasources/cart_remote_datasource.dart';
+import '../../data/repositories/cart_repository_impl.dart';
 
-// Mock cart data for development
-final _mockCarts = <String, Cart>{};
+// Data source providers
+final cartRemoteDataSourceProvider = Provider<CartRemoteDataSource>((ref) {
+  return CartRemoteDataSourceImpl(firestore: FirebaseFirestore.instance);
+});
 
-// Cart providers
-final userCartProvider = FutureProvider.family<Cart, String>((ref, userId) async {
-  // Simulate network delay
-  await Future.delayed(const Duration(milliseconds: 500));
-  
-  // Return existing cart or create empty cart
-  return _mockCarts[userId] ?? Cart(
-    id: 'cart_$userId',
-    userId: userId,
-    items: [],
-    subtotal: 0.0,
-    total: 0.0,
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
+final cartLocalDataSourceProvider = Provider<CartLocalDataSource>((ref) {
+  final sharedPreferences = ref.read(sharedPreferencesProvider);
+  return CartLocalDataSourceImpl(sharedPreferences: sharedPreferences);
+});
+
+// Repository provider
+final cartRepositoryProvider = Provider<CartRepository>((ref) {
+  return CartRepositoryImpl(
+    remoteDataSource: ref.read(cartRemoteDataSourceProvider),
+    localDataSource: ref.read(cartLocalDataSourceProvider),
+    networkInfo: ref.read(networkInfoProvider),
   );
 });
 
-// Cart actions (these would normally be in a repository/service)
+// Use case providers
+final addToCartUseCaseProvider = Provider<AddToCartUseCase>((ref) {
+  return AddToCartUseCase(ref.read(cartRepositoryProvider));
+});
+
+final removeFromCartUseCaseProvider = Provider<RemoveFromCartUseCase>((ref) {
+  return RemoveFromCartUseCase(ref.read(cartRepositoryProvider));
+});
+
+final updateCartItemUseCaseProvider = Provider<UpdateCartItemUseCase>((ref) {
+  return UpdateCartItemUseCase(ref.read(cartRepositoryProvider));
+});
+
+final getCartUseCaseProvider = Provider<GetCartUseCase>((ref) {
+  return GetCartUseCase(ref.read(cartRepositoryProvider));
+});
+
+final clearCartUseCaseProvider = Provider<ClearCartUseCase>((ref) {
+  return ClearCartUseCase(ref.read(cartRepositoryProvider));
+});
+
+final applyCouponUseCaseProvider = Provider<ApplyCouponUseCase>((ref) {
+  return ApplyCouponUseCase(ref.read(cartRepositoryProvider));
+});
+
+final watchCartUseCaseProvider = Provider<WatchCartUseCase>((ref) {
+  return WatchCartUseCase(ref.read(cartRepositoryProvider));
+});
+
+// Main cart provider - gets cart for current user
+final userCartProvider = FutureProvider<Cart>((ref) async {
+  final currentUser = ref.watch(currentUserProvider).value;
+  if (currentUser == null) {
+    throw Exception('User not authenticated');
+  }
+
+  final getCartUseCase = ref.read(getCartUseCaseProvider);
+  final result = await getCartUseCase(GetCartParams(userId: currentUser.id));
+
+  return result.fold(
+    (failure) => throw Exception(failure.message),
+    (cart) => cart,
+  );
+});
+
+// Cart stream provider - watches cart changes for current user
+final userCartStreamProvider = StreamProvider<Cart>((ref) {
+  final currentUser = ref.watch(currentUserProvider).value;
+  if (currentUser == null) {
+    return Stream.error('User not authenticated');
+  }
+
+  final watchCartUseCase = ref.read(watchCartUseCaseProvider);
+  return watchCartUseCase(currentUser.id);
+});
+
+// Cart item count provider
+final cartItemCountProvider = Provider<int>((ref) {
+  final cartAsync = ref.watch(userCartProvider);
+  return cartAsync.when(
+    data: (cart) => cart.itemCount,
+    loading: () => 0,
+    error: (error, stack) => 0,
+  );
+});
+
+// Cart total provider
+final cartTotalProvider = Provider<double>((ref) {
+  final cartAsync = ref.watch(userCartProvider);
+  return cartAsync.when(
+    data: (cart) => cart.total,
+    loading: () => 0.0,
+    error: (error, stack) => 0.0,
+  );
+});
+
+// Cart actions extension
 extension CartActions on WidgetRef {
-  void addToCart(String userId, Product product, int quantity) {
-    final currentCart = _mockCarts[userId] ?? Cart(
-      id: 'cart_$userId',
-      userId: userId,
-      items: [],
-      subtotal: 0.0,
-      total: 0.0,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+  Future<void> addToCart(Product product, int quantity) async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
+
+    final addToCartUseCase = read(addToCartUseCaseProvider);
+    final result = await addToCartUseCase(
+      AddToCartParams(
+        userId: currentUser.id,
+        product: product,
+        quantity: quantity,
+      ),
     );
 
-    final existingItemIndex = currentCart.items.indexWhere((item) => item.product.id == product.id);
-    
-    List<CartItem> updatedItems;
-    if (existingItemIndex >= 0) {
-      // Update existing item quantity
-      updatedItems = List.from(currentCart.items);
-      updatedItems[existingItemIndex] = updatedItems[existingItemIndex].copyWith(
-        quantity: updatedItems[existingItemIndex].quantity + quantity,
-        updatedAt: DateTime.now(),
-      );
-    } else {
-      // Add new item
-      updatedItems = [
-        ...currentCart.items,
-        CartItem(
-          id: 'item_${DateTime.now().millisecondsSinceEpoch}',
-          product: product,
-          quantity: quantity,
-          addedAt: DateTime.now(),
-        ),
-      ];
-    }
-
-    final updatedCart = Cart.calculateTotals(currentCart.copyWith(
-      items: updatedItems,
-      updatedAt: DateTime.now(),
-    ));
-
-    _mockCarts[userId] = updatedCart;
-    invalidate(userCartProvider(userId));
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (cart) => invalidate(userCartProvider),
+    );
   }
 
-  void removeFromCart(String userId, String itemId) {
-    final currentCart = _mockCarts[userId];
-    if (currentCart == null) return;
+  Future<void> removeFromCart(String itemId) async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
 
-    final updatedItems = currentCart.items.where((item) => item.id != itemId).toList();
-    final updatedCart = Cart.calculateTotals(currentCart.copyWith(
-      items: updatedItems,
-      updatedAt: DateTime.now(),
-    ));
-
-    _mockCarts[userId] = updatedCart;
-    invalidate(userCartProvider(userId));
-  }
-
-  void updateCartItemQuantity(String userId, String itemId, int quantity) {
-    final currentCart = _mockCarts[userId];
-    if (currentCart == null) return;
-
-    final updatedItems = currentCart.items.map((item) {
-      if (item.id == itemId) {
-        return item.copyWith(quantity: quantity, updatedAt: DateTime.now());
-      }
-      return item;
-    }).toList();
-
-    final updatedCart = Cart.calculateTotals(currentCart.copyWith(
-      items: updatedItems,
-      updatedAt: DateTime.now(),
-    ));
-
-    _mockCarts[userId] = updatedCart;
-    invalidate(userCartProvider(userId));
-  }
-
-  void clearCart(String userId) {
-    final currentCart = _mockCarts[userId];
-    if (currentCart == null) return;
-
-    final updatedCart = currentCart.copyWith(
-      items: [],
-      subtotal: 0.0,
-      discount: 0.0,
-      couponDiscount: 0.0,
-      total: 0.0,
-      appliedCoupon: null,
-      updatedAt: DateTime.now(),
+    final removeFromCartUseCase = read(removeFromCartUseCaseProvider);
+    final result = await removeFromCartUseCase(
+      RemoveFromCartParams(userId: currentUser.id, itemId: itemId),
     );
 
-    _mockCarts[userId] = updatedCart;
-    invalidate(userCartProvider(userId));
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (cart) => invalidate(userCartProvider),
+    );
   }
 
-  void applyCoupon(String userId, String couponCode) {
-    final currentCart = _mockCarts[userId];
-    if (currentCart == null) return;
+  Future<void> updateCartItemQuantity(String itemId, int quantity) async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
 
-    // Mock coupon validation and discount calculation
-    double couponDiscount = 0.0;
-    switch (couponCode.toUpperCase()) {
-      case 'SAVE10':
-        couponDiscount = currentCart.subtotal * 0.1; // 10% discount
-        break;
-      case 'SAVE5000':
-        couponDiscount = 5000.0; // Fixed 5000 TZS discount
-        break;
-      case 'FREESHIP':
-        // This would be handled in shipping calculation
-        break;
-    }
+    final updateCartItemUseCase = read(updateCartItemUseCaseProvider);
+    final result = await updateCartItemUseCase(
+      UpdateCartItemParams(
+        userId: currentUser.id,
+        itemId: itemId,
+        quantity: quantity,
+      ),
+    );
 
-    final updatedCart = Cart.calculateTotals(currentCart.copyWith(
-      couponDiscount: couponDiscount,
-      appliedCoupon: couponCode,
-      updatedAt: DateTime.now(),
-    ));
-
-    _mockCarts[userId] = updatedCart;
-    invalidate(userCartProvider(userId));
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (cart) => invalidate(userCartProvider),
+    );
   }
 
-  void removeCoupon(String userId) {
-    final currentCart = _mockCarts[userId];
-    if (currentCart == null) return;
+  Future<void> clearCart() async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
 
-    final updatedCart = Cart.calculateTotals(currentCart.copyWith(
-      couponDiscount: 0.0,
-      appliedCoupon: null,
-      updatedAt: DateTime.now(),
-    ));
+    final clearCartUseCase = read(clearCartUseCaseProvider);
+    final result = await clearCartUseCase(
+      ClearCartParams(userId: currentUser.id),
+    );
 
-    _mockCarts[userId] = updatedCart;
-    invalidate(userCartProvider(userId));
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (cart) => invalidate(userCartProvider),
+    );
   }
 
-  void saveForLater(String userId, String itemId) {
-    // Mock implementation - in real app, this would move item to saved items
-    removeFromCart(userId, itemId);
+  Future<void> applyCoupon(String couponCode) async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
+
+    final applyCouponUseCase = read(applyCouponUseCaseProvider);
+    final result = await applyCouponUseCase(
+      ApplyCouponParams(userId: currentUser.id, couponCode: couponCode),
+    );
+
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (cart) => invalidate(userCartProvider),
+    );
   }
 
-  void saveAllForLater(String userId) {
-    // Mock implementation - in real app, this would move all items to saved items
-    clearCart(userId);
+  Future<void> removeCoupon() async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
+
+    final cartRepository = read(cartRepositoryProvider);
+    final result = await cartRepository.removeCoupon(currentUser.id);
+
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (cart) => invalidate(userCartProvider),
+    );
   }
 
-  void addRecommendedToCart(String userId, String productId) {
-    // Mock implementation - in real app, this would fetch product and add to cart
-    // For now, just simulate adding a product
+  Future<void> saveForLater(String itemId) async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
+
+    final cartRepository = read(cartRepositoryProvider);
+    final result = await cartRepository.saveForLater(currentUser.id, itemId);
+
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (_) => invalidate(userCartProvider),
+    );
   }
 
-  // Analytics methods
-  void trackCheckoutInitiated(String userId, Cart cart) {
-    // Mock analytics tracking
-    print('Checkout initiated: User $userId, Cart total: ${cart.total}');
+  Future<void> saveAllForLater() async {
+    final currentUser = read(currentUserProvider).value;
+    if (currentUser == null) return;
+
+    final cartRepository = read(cartRepositoryProvider);
+    final result = await cartRepository.saveAllForLater(currentUser.id);
+
+    result.fold(
+      (failure) => throw Exception(failure.message),
+      (_) => invalidate(userCartProvider),
+    );
   }
 
-  void trackPartialCheckout(String userId, Cart cart) {
-    // Mock analytics tracking
-    print('Partial checkout: User $userId, Selected items: ${cart.items.length}');
+  // Analytics tracking methods
+  void trackCheckoutInitiated(Cart cart) {
+    // In a real app, this would track analytics
+    print(
+      'Checkout initiated with ${cart.items.length} items, total: ${cart.total}',
+    );
+  }
+
+  void trackPartialCheckout(Cart cart) {
+    // In a real app, this would track analytics
+    print(
+      'Partial checkout with ${cart.items.length} items, total: ${cart.total}',
+    );
+  }
+
+  void addRecommendedToCart(String productId) {
+    // In a real app, this would fetch the product and add it to cart
+    print('Adding recommended product $productId to cart');
   }
 }

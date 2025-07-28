@@ -12,6 +12,8 @@
 .swiftpm/
 migrate_working_dir/
 
+# CDBB3217-2281-4F66-AF00-56A8771E6CA8
+
 # IntelliJ related
 *.iml
 *.ipr

@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../repositories/vehicle_repository.dart';
 import '../entities/document.dart';
@@ -47,7 +47,9 @@ class CreateDocumentUseCase implements UseCase<Document, CreateDocumentParams> {
 
     // Validate expiry date for documents that require it
     if (params.type.hasExpiryDate && params.expiryDate == null) {
-      return const Left(ValidationFailure('Expiry date is required for this document type'));
+      return const Left(
+        ValidationFailure('Expiry date is required for this document type'),
+      );
     }
 
     // Create document entity
@@ -85,35 +87,36 @@ class UpdateDocumentUseCase implements UseCase<Document, UpdateDocumentParams> {
   @override
   Future<Either<Failure, Document>> call(UpdateDocumentParams params) async {
     // Get existing document
-    final existingDocumentResult = await repository.getDocumentById(params.documentId);
-    
-    return existingDocumentResult.fold(
-      (failure) => Left(failure),
-      (existingDocument) async {
-        if (existingDocument == null) {
-          return const Left(NotFoundFailure('Document not found'));
-        }
-
-        // Update document with new data
-        final updatedDocument = existingDocument.copyWith(
-          title: params.title?.trim(),
-          description: params.description?.trim(),
-          fileUrl: params.fileUrl,
-          fileName: params.fileName,
-          fileType: params.fileType,
-          fileSize: params.fileSize,
-          issueDate: params.issueDate,
-          expiryDate: params.expiryDate,
-          issuer: params.issuer?.trim(),
-          documentNumber: params.documentNumber?.trim(),
-          status: params.status,
-          metadata: params.metadata,
-          updatedAt: DateTime.now(),
-        );
-
-        return await repository.updateDocument(updatedDocument);
-      },
+    final existingDocumentResult = await repository.getDocumentById(
+      params.documentId,
     );
+
+    return existingDocumentResult.fold((failure) => Left(failure), (
+      existingDocument,
+    ) async {
+      if (existingDocument == null) {
+        return const Left(NotFoundFailure('Document not found'));
+      }
+
+      // Update document with new data
+      final updatedDocument = existingDocument.copyWith(
+        title: params.title?.trim(),
+        description: params.description?.trim(),
+        fileUrl: params.fileUrl,
+        fileName: params.fileName,
+        fileType: params.fileType,
+        fileSize: params.fileSize,
+        issueDate: params.issueDate,
+        expiryDate: params.expiryDate,
+        issuer: params.issuer?.trim(),
+        documentNumber: params.documentNumber?.trim(),
+        status: params.status,
+        metadata: params.metadata,
+        updatedAt: DateTime.now(),
+      );
+
+      return await repository.updateDocument(updatedDocument);
+    });
   }
 }
 
@@ -142,7 +145,8 @@ class GetExpiredDocumentsUseCase implements UseCase<List<Document>, String> {
 }
 
 /// Get Expiring Soon Documents Use Case
-class GetExpiringSoonDocumentsUseCase implements UseCase<List<Document>, String> {
+class GetExpiringSoonDocumentsUseCase
+    implements UseCase<List<Document>, String> {
   final VehicleRepository repository;
 
   GetExpiringSoonDocumentsUseCase(this.repository);
@@ -238,8 +242,5 @@ class UploadDocumentParams {
   final String documentId;
   final String filePath;
 
-  UploadDocumentParams({
-    required this.documentId,
-    required this.filePath,
-  });
+  UploadDocumentParams({required this.documentId, required this.filePath});
 }

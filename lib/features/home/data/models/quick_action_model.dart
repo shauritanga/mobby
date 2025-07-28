@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/quick_action.dart';
 
-part 'quick_action_model.g.dart';
-
-@JsonSerializable()
 class QuickActionModel extends QuickAction {
   const QuickActionModel({
     required super.id,
@@ -19,10 +15,42 @@ class QuickActionModel extends QuickAction {
     required super.updatedAt,
   });
 
-  factory QuickActionModel.fromJson(Map<String, dynamic> json) =>
-      _$QuickActionModelFromJson(json);
+  factory QuickActionModel.fromMap(Map<String, dynamic> map) {
+    return QuickActionModel(
+      id: map['id'] as String,
+      title: map['title'] as String,
+      iconName: map['iconName'] as String,
+      route: map['route'] as String,
+      colorHex: map['colorHex'] as String,
+      sortOrder: map['sortOrder'] as int,
+      isActive: map['isActive'] as bool,
+      requiresAuth: map['requiresAuth'] as bool,
+      description: map['description'] as String?,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      updatedAt: DateTime.parse(map['updatedAt'] as String),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$QuickActionModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'iconName': iconName,
+      'route': route,
+      'colorHex': colorHex,
+      'sortOrder': sortOrder,
+      'isActive': isActive,
+      'requiresAuth': requiresAuth,
+      'description': description,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory QuickActionModel.fromJson(Map<String, dynamic> json) =>
+      QuickActionModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory QuickActionModel.fromEntity(QuickAction quickAction) {
     return QuickActionModel(

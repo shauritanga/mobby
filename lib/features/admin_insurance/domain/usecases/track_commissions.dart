@@ -1,19 +1,22 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/commission.dart';
 import '../repositories/admin_insurance_repository.dart';
 
 /// Get all commissions use case
-class GetAllCommissions implements UseCase<List<Commission>, GetAllCommissionsParams> {
+class GetAllCommissions
+    implements UseCase<List<Commission>, GetAllCommissionsParams> {
   final AdminInsuranceRepository repository;
 
   const GetAllCommissions(this.repository);
 
   @override
-  Future<Either<Failure, List<Commission>>> call(GetAllCommissionsParams params) async {
+  Future<Either<Failure, List<Commission>>> call(
+    GetAllCommissionsParams params,
+  ) async {
     return await repository.getAllCommissions(
       type: params.type,
       status: params.status,
@@ -53,26 +56,29 @@ class GetAllCommissionsParams extends Equatable {
 
   @override
   List<Object?> get props => [
-        type,
-        status,
-        tier,
-        partnerId,
-        startDate,
-        endDate,
-        searchQuery,
-        page,
-        limit,
-      ];
+    type,
+    status,
+    tier,
+    partnerId,
+    startDate,
+    endDate,
+    searchQuery,
+    page,
+    limit,
+  ];
 }
 
 /// Update commission status use case
-class UpdateCommissionStatus implements UseCase<Commission, UpdateCommissionStatusParams> {
+class UpdateCommissionStatus
+    implements UseCase<Commission, UpdateCommissionStatusParams> {
   final AdminInsuranceRepository repository;
 
   const UpdateCommissionStatus(this.repository);
 
   @override
-  Future<Either<Failure, Commission>> call(UpdateCommissionStatusParams params) async {
+  Future<Either<Failure, Commission>> call(
+    UpdateCommissionStatusParams params,
+  ) async {
     if (params.commissionId.isEmpty) {
       return const Left(ValidationFailure('Commission ID is required'));
     }
@@ -108,13 +114,16 @@ class UpdateCommissionStatusParams extends Equatable {
 }
 
 /// Process commission payment use case
-class ProcessCommissionPayment implements UseCase<Commission, ProcessCommissionPaymentParams> {
+class ProcessCommissionPayment
+    implements UseCase<Commission, ProcessCommissionPaymentParams> {
   final AdminInsuranceRepository repository;
 
   const ProcessCommissionPayment(this.repository);
 
   @override
-  Future<Either<Failure, Commission>> call(ProcessCommissionPaymentParams params) async {
+  Future<Either<Failure, Commission>> call(
+    ProcessCommissionPaymentParams params,
+  ) async {
     if (params.commissionId.isEmpty) {
       return const Left(ValidationFailure('Commission ID is required'));
     }
@@ -154,17 +163,25 @@ class ProcessCommissionPaymentParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [commissionId, paymentReference, paymentMethod, processedBy];
+  List<Object?> get props => [
+    commissionId,
+    paymentReference,
+    paymentMethod,
+    processedBy,
+  ];
 }
 
 /// Add commission adjustment use case
-class AddCommissionAdjustment implements UseCase<Commission, AddCommissionAdjustmentParams> {
+class AddCommissionAdjustment
+    implements UseCase<Commission, AddCommissionAdjustmentParams> {
   final AdminInsuranceRepository repository;
 
   const AddCommissionAdjustment(this.repository);
 
   @override
-  Future<Either<Failure, Commission>> call(AddCommissionAdjustmentParams params) async {
+  Future<Either<Failure, Commission>> call(
+    AddCommissionAdjustmentParams params,
+  ) async {
     if (params.commissionId.isEmpty) {
       return const Left(ValidationFailure('Commission ID is required'));
     }
@@ -206,17 +223,27 @@ class AddCommissionAdjustmentParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [commissionId, reason, amount, type, adjustedBy, notes];
+  List<Object?> get props => [
+    commissionId,
+    reason,
+    amount,
+    type,
+    adjustedBy,
+    notes,
+  ];
 }
 
 /// Get commissions by partner use case
-class GetCommissionsByPartner implements UseCase<List<Commission>, GetCommissionsByPartnerParams> {
+class GetCommissionsByPartner
+    implements UseCase<List<Commission>, GetCommissionsByPartnerParams> {
   final AdminInsuranceRepository repository;
 
   const GetCommissionsByPartner(this.repository);
 
   @override
-  Future<Either<Failure, List<Commission>>> call(GetCommissionsByPartnerParams params) async {
+  Future<Either<Failure, List<Commission>>> call(
+    GetCommissionsByPartnerParams params,
+  ) async {
     if (params.partnerId.isEmpty) {
       return const Left(ValidationFailure('Partner ID is required'));
     }
@@ -248,13 +275,16 @@ class GetCommissionsByPartnerParams extends Equatable {
 }
 
 /// Search commissions use case
-class SearchCommissions implements UseCase<List<Commission>, SearchCommissionsParams> {
+class SearchCommissions
+    implements UseCase<List<Commission>, SearchCommissionsParams> {
   final AdminInsuranceRepository repository;
 
   const SearchCommissions(this.repository);
 
   @override
-  Future<Either<Failure, List<Commission>>> call(SearchCommissionsParams params) async {
+  Future<Either<Failure, List<Commission>>> call(
+    SearchCommissionsParams params,
+  ) async {
     if (params.query.isEmpty) {
       return const Left(ValidationFailure('Search query is required'));
     }
@@ -292,13 +322,16 @@ class SearchCommissionsParams extends Equatable {
 }
 
 /// Get commissions analytics use case
-class GetCommissionsAnalytics implements UseCase<Map<String, dynamic>, GetCommissionsAnalyticsParams> {
+class GetCommissionsAnalytics
+    implements UseCase<Map<String, dynamic>, GetCommissionsAnalyticsParams> {
   final AdminInsuranceRepository repository;
 
   const GetCommissionsAnalytics(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> call(GetCommissionsAnalyticsParams params) async {
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    GetCommissionsAnalyticsParams params,
+  ) async {
     return await repository.getCommissionsAnalytics(
       startDate: params.startDate,
       endDate: params.endDate,
@@ -323,13 +356,16 @@ class GetCommissionsAnalyticsParams extends Equatable {
 }
 
 /// Bulk update commission status use case
-class BulkUpdateCommissionStatus implements UseCase<void, BulkUpdateCommissionStatusParams> {
+class BulkUpdateCommissionStatus
+    implements UseCase<void, BulkUpdateCommissionStatusParams> {
   final AdminInsuranceRepository repository;
 
   const BulkUpdateCommissionStatus(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(BulkUpdateCommissionStatusParams params) async {
+  Future<Either<Failure, void>> call(
+    BulkUpdateCommissionStatusParams params,
+  ) async {
     if (params.commissionIds.isEmpty) {
       return const Left(ValidationFailure('Commission IDs are required'));
     }
@@ -365,13 +401,16 @@ class BulkUpdateCommissionStatusParams extends Equatable {
 }
 
 /// Bulk process commission payments use case
-class BulkProcessCommissionPayments implements UseCase<void, BulkProcessCommissionPaymentsParams> {
+class BulkProcessCommissionPayments
+    implements UseCase<void, BulkProcessCommissionPaymentsParams> {
   final AdminInsuranceRepository repository;
 
   const BulkProcessCommissionPayments(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(BulkProcessCommissionPaymentsParams params) async {
+  Future<Either<Failure, void>> call(
+    BulkProcessCommissionPaymentsParams params,
+  ) async {
     if (params.commissionIds.isEmpty) {
       return const Left(ValidationFailure('Commission IDs are required'));
     }

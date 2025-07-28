@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/validators.dart';
 import '../repositories/auth_repository.dart';
 
@@ -8,9 +8,7 @@ class SendPasswordResetUseCase {
 
   SendPasswordResetUseCase(this.repository);
 
-  Future<Either<Failure, void>> call({
-    required String email,
-  }) async {
+  Future<Either<Failure, void>> call({required String email}) async {
     // Validate input
     final emailValidation = Validators.validateEmail(email);
     if (emailValidation != null) {

@@ -1,19 +1,22 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/application.dart';
 import '../repositories/admin_insurance_repository.dart';
 
 /// Get all applications use case
-class GetAllApplications implements UseCase<List<InsuranceApplication>, GetAllApplicationsParams> {
+class GetAllApplications
+    implements UseCase<List<InsuranceApplication>, GetAllApplicationsParams> {
   final AdminInsuranceRepository repository;
 
   const GetAllApplications(this.repository);
 
   @override
-  Future<Either<Failure, List<InsuranceApplication>>> call(GetAllApplicationsParams params) async {
+  Future<Either<Failure, List<InsuranceApplication>>> call(
+    GetAllApplicationsParams params,
+  ) async {
     return await repository.getAllApplications(
       type: params.type,
       status: params.status,
@@ -56,27 +59,30 @@ class GetAllApplicationsParams extends Equatable {
 
   @override
   List<Object?> get props => [
-        type,
-        status,
-        priority,
-        partnerId,
-        assignedTo,
-        startDate,
-        endDate,
-        searchQuery,
-        page,
-        limit,
-      ];
+    type,
+    status,
+    priority,
+    partnerId,
+    assignedTo,
+    startDate,
+    endDate,
+    searchQuery,
+    page,
+    limit,
+  ];
 }
 
 /// Update application status use case
-class UpdateApplicationStatus implements UseCase<InsuranceApplication, UpdateApplicationStatusParams> {
+class UpdateApplicationStatus
+    implements UseCase<InsuranceApplication, UpdateApplicationStatusParams> {
   final AdminInsuranceRepository repository;
 
   const UpdateApplicationStatus(this.repository);
 
   @override
-  Future<Either<Failure, InsuranceApplication>> call(UpdateApplicationStatusParams params) async {
+  Future<Either<Failure, InsuranceApplication>> call(
+    UpdateApplicationStatusParams params,
+  ) async {
     if (params.applicationId.isEmpty) {
       return const Left(ValidationFailure('Application ID is required'));
     }
@@ -112,13 +118,16 @@ class UpdateApplicationStatusParams extends Equatable {
 }
 
 /// Assign application use case
-class AssignApplication implements UseCase<InsuranceApplication, AssignApplicationParams> {
+class AssignApplication
+    implements UseCase<InsuranceApplication, AssignApplicationParams> {
   final AdminInsuranceRepository repository;
 
   const AssignApplication(this.repository);
 
   @override
-  Future<Either<Failure, InsuranceApplication>> call(AssignApplicationParams params) async {
+  Future<Either<Failure, InsuranceApplication>> call(
+    AssignApplicationParams params,
+  ) async {
     if (params.applicationId.isEmpty) {
       return const Left(ValidationFailure('Application ID is required'));
     }
@@ -155,13 +164,16 @@ class AssignApplicationParams extends Equatable {
 }
 
 /// Update application priority use case
-class UpdateApplicationPriority implements UseCase<InsuranceApplication, UpdateApplicationPriorityParams> {
+class UpdateApplicationPriority
+    implements UseCase<InsuranceApplication, UpdateApplicationPriorityParams> {
   final AdminInsuranceRepository repository;
 
   const UpdateApplicationPriority(this.repository);
 
   @override
-  Future<Either<Failure, InsuranceApplication>> call(UpdateApplicationPriorityParams params) async {
+  Future<Either<Failure, InsuranceApplication>> call(
+    UpdateApplicationPriorityParams params,
+  ) async {
     if (params.applicationId.isEmpty) {
       return const Left(ValidationFailure('Application ID is required'));
     }
@@ -240,13 +252,17 @@ class AddApplicationNoteParams extends Equatable {
 }
 
 /// Get applications by assignee use case
-class GetApplicationsByAssignee implements UseCase<List<InsuranceApplication>, GetApplicationsByAssigneeParams> {
+class GetApplicationsByAssignee
+    implements
+        UseCase<List<InsuranceApplication>, GetApplicationsByAssigneeParams> {
   final AdminInsuranceRepository repository;
 
   const GetApplicationsByAssignee(this.repository);
 
   @override
-  Future<Either<Failure, List<InsuranceApplication>>> call(GetApplicationsByAssigneeParams params) async {
+  Future<Either<Failure, List<InsuranceApplication>>> call(
+    GetApplicationsByAssigneeParams params,
+  ) async {
     if (params.assigneeId.isEmpty) {
       return const Left(ValidationFailure('Assignee ID is required'));
     }
@@ -258,22 +274,23 @@ class GetApplicationsByAssignee implements UseCase<List<InsuranceApplication>, G
 class GetApplicationsByAssigneeParams extends Equatable {
   final String assigneeId;
 
-  const GetApplicationsByAssigneeParams({
-    required this.assigneeId,
-  });
+  const GetApplicationsByAssigneeParams({required this.assigneeId});
 
   @override
   List<Object?> get props => [assigneeId];
 }
 
 /// Search applications use case
-class SearchApplications implements UseCase<List<InsuranceApplication>, SearchApplicationsParams> {
+class SearchApplications
+    implements UseCase<List<InsuranceApplication>, SearchApplicationsParams> {
   final AdminInsuranceRepository repository;
 
   const SearchApplications(this.repository);
 
   @override
-  Future<Either<Failure, List<InsuranceApplication>>> call(SearchApplicationsParams params) async {
+  Future<Either<Failure, List<InsuranceApplication>>> call(
+    SearchApplicationsParams params,
+  ) async {
     if (params.query.isEmpty) {
       return const Left(ValidationFailure('Search query is required'));
     }
@@ -310,17 +327,28 @@ class SearchApplicationsParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [query, type, status, priority, partnerId, page, limit];
+  List<Object?> get props => [
+    query,
+    type,
+    status,
+    priority,
+    partnerId,
+    page,
+    limit,
+  ];
 }
 
 /// Get applications analytics use case
-class GetApplicationsAnalytics implements UseCase<Map<String, dynamic>, GetApplicationsAnalyticsParams> {
+class GetApplicationsAnalytics
+    implements UseCase<Map<String, dynamic>, GetApplicationsAnalyticsParams> {
   final AdminInsuranceRepository repository;
 
   const GetApplicationsAnalytics(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> call(GetApplicationsAnalyticsParams params) async {
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    GetApplicationsAnalyticsParams params,
+  ) async {
     return await repository.getApplicationsAnalytics(
       startDate: params.startDate,
       endDate: params.endDate,
@@ -345,13 +373,16 @@ class GetApplicationsAnalyticsParams extends Equatable {
 }
 
 /// Bulk update application status use case
-class BulkUpdateApplicationStatus implements UseCase<void, BulkUpdateApplicationStatusParams> {
+class BulkUpdateApplicationStatus
+    implements UseCase<void, BulkUpdateApplicationStatusParams> {
   final AdminInsuranceRepository repository;
 
   const BulkUpdateApplicationStatus(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(BulkUpdateApplicationStatusParams params) async {
+  Future<Either<Failure, void>> call(
+    BulkUpdateApplicationStatusParams params,
+  ) async {
     if (params.applicationIds.isEmpty) {
       return const Left(ValidationFailure('Application IDs are required'));
     }

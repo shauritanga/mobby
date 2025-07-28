@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/user.dart';
 
-part 'user_model.g.dart';
-
-@JsonSerializable()
 class UserModel extends User {
   const UserModel({
     required super.id,
@@ -17,10 +13,40 @@ class UserModel extends User {
     super.updatedAt,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      id: map['id'] as String,
+      email: map['email'] as String,
+      phoneNumber: map['phoneNumber'] as String?,
+      displayName: map['displayName'] as String?,
+      photoUrl: map['photoUrl'] as String?,
+      isEmailVerified: map['isEmailVerified'] as bool,
+      isPhoneVerified: map['isPhoneVerified'] as bool,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'] as String)
+          : null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$UserModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'displayName': displayName,
+      'photoUrl': photoUrl,
+      'isEmailVerified': isEmailVerified,
+      'isPhoneVerified': isPhoneVerified,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      UserModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory UserModel.fromEntity(User user) {
     return UserModel(
@@ -51,7 +77,10 @@ class UserModel extends User {
   }
 
   // Firebase specific factory
-  factory UserModel.fromFirebaseUser(dynamic firebaseUser, {Map<String, dynamic>? additionalData}) {
+  factory UserModel.fromFirebaseUser(
+    dynamic firebaseUser, {
+    Map<String, dynamic>? additionalData,
+  }) {
     return UserModel(
       id: firebaseUser.uid,
       email: firebaseUser.email ?? '',

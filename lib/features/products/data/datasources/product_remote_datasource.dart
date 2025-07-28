@@ -3,9 +3,7 @@ import '../models/product_model.dart';
 import '../models/brand_model.dart';
 import '../models/review_model.dart';
 import '../../domain/entities/product_filter.dart';
-import '../../domain/entities/product.dart';
 import '../../domain/entities/product_search_result.dart';
-import 'sample_product_data.dart';
 
 abstract class ProductRemoteDataSource {
   Future<ProductModel?> getProductById(String id);
@@ -86,41 +84,68 @@ abstract class ProductRemoteDataSource {
 
 class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   final FirebaseFirestore _firestore;
-  final SampleProductData _sampleData;
 
-  ProductRemoteDataSourceImpl({
-    FirebaseFirestore? firestore,
-    SampleProductData? sampleData,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _sampleData = sampleData ?? SampleProductData();
+  ProductRemoteDataSourceImpl({FirebaseFirestore? firestore})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
+
+  // Collection references
+  CollectionReference get _productsCollection =>
+      _firestore.collection('products');
+  CollectionReference get _brandsCollection => _firestore.collection('brands');
+  CollectionReference get _reviewsCollection =>
+      _firestore.collection('reviews');
+  CollectionReference get _analyticsCollection =>
+      _firestore.collection('analytics');
+
+  // Helper method to parse product from Firestore document
+  ProductModel _parseProductFromDoc(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    // Ensure the document ID is included in the data
+    data['id'] = doc.id;
+    return ProductModel.fromMap(data);
+  }
+
+  // Helper method to parse product from document snapshot
+  ProductModel _parseProductFromDocSnapshot(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    // Ensure the document ID is included in the data
+    data['id'] = doc.id;
+    return ProductModel.fromMap(data);
+  }
+
+  // Helper method to parse brand from Firestore document
+  BrandModel _parseBrandFromDoc(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    // Ensure the document ID is included in the data
+    data['id'] = doc.id;
+    return BrandModel.fromMap(data);
+  }
+
+  // Helper method to parse brand from document snapshot
+  BrandModel _parseBrandFromDocSnapshot(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    // Ensure the document ID is included in the data
+    data['id'] = doc.id;
+    return BrandModel.fromMap(data);
+  }
 
   @override
   Future<ProductModel?> getProductById(String id) async {
     try {
-      // Try to get from Firestore first
-      final doc = await _firestore.collection('products').doc(id).get();
-      if (doc.exists && doc.data() != null) {
-        return ProductModel.fromJson(doc.data()!);
+      final doc = await _productsCollection.doc(id).get();
+      if (doc.exists) {
+        return _parseProductFromDocSnapshot(doc);
       }
-
-      // Fallback to sample data
-      final sampleProducts = await _sampleData.getProducts();
-      final product = sampleProducts.firstWhere(
-        (p) => p.id == id,
-        orElse: () => throw Exception('Product not found'),
-      );
-      return ProductModel.fromEntity(product);
-    } catch (e) {
-      print('Error getting product by ID: $e');
       return null;
+    } catch (e) {
+      throw Exception('Failed to get product by ID: $e');
     }
   }
 
   @override
   Future<ProductSearchResult> getProducts(ProductFilter filter) async {
     try {
-      // Try Firestore first
-      Query query = _firestore.collection('products');
+      Query query = _productsCollection.where('isActive', isEqualTo: true);
 
       // Apply filters
       if (filter.categoryIds.isNotEmpty) {
@@ -131,18 +156,19 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         query = query.where('brandId', whereIn: filter.brandIds);
       }
 
-      if (filter.priceRange.minPrice != null) {
-        query = query.where(
-          'price',
-          isGreaterThanOrEqualTo: filter.priceRange.minPrice,
-        );
-      }
-
-      if (filter.priceRange.maxPrice != null) {
-        query = query.where(
-          'price',
-          isLessThanOrEqualTo: filter.priceRange.maxPrice,
-        );
+      if (filter.priceRange.hasRange) {
+        if (filter.priceRange.minPrice != null) {
+          query = query.where(
+            'price',
+            isGreaterThanOrEqualTo: filter.priceRange.minPrice,
+          );
+        }
+        if (filter.priceRange.maxPrice != null) {
+          query = query.where(
+            'price',
+            isLessThanOrEqualTo: filter.priceRange.maxPrice,
+          );
+        }
       }
 
       if (filter.minRating != null) {
@@ -151,27 +177,6 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
 
       if (filter.isFeatured != null) {
         query = query.where('isFeatured', isEqualTo: filter.isFeatured);
-      }
-
-      if (filter.isOnSale != null) {
-        if (filter.isOnSale!) {
-          query = query.where('originalPrice', isNull: false);
-        }
-      }
-
-      // Apply availability filter
-      switch (filter.availability) {
-        case ProductAvailability.inStock:
-          query = query.where('stockStatus', isEqualTo: 'inStock');
-          break;
-        case ProductAvailability.outOfStock:
-          query = query.where('stockStatus', isEqualTo: 'outOfStock');
-          break;
-        case ProductAvailability.lowStock:
-          query = query.where('stockStatus', isEqualTo: 'lowStock');
-          break;
-        case ProductAvailability.all:
-          break;
       }
 
       // Apply sorting
@@ -188,51 +193,40 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         case SortOption.newest:
           query = query.orderBy('createdAt', descending: true);
           break;
+        case SortOption.popular:
+          query = query.orderBy('reviewCount', descending: true);
+          break;
         case SortOption.nameAsc:
           query = query.orderBy('name', descending: false);
           break;
         case SortOption.nameDesc:
           query = query.orderBy('name', descending: true);
           break;
-        case SortOption.popular:
-          query = query.orderBy('reviewCount', descending: true);
-          break;
         case SortOption.relevance:
-        default:
           query = query.orderBy('createdAt', descending: true);
           break;
       }
 
-      // Apply pagination using startAfterDocument for true pagination
-      // We store the last document of the previous page to start after it for the current page
-      query = query.limit(filter.limit.toInt());
+      // Get total count for pagination
+      final totalSnapshot = await query.get();
+      final totalCount = totalSnapshot.docs.length;
 
+      // Apply pagination using startAfter for better performance
+      Query paginatedQuery = query;
       if (filter.page > 1) {
-        // This assumes we have a way to store or pass the last document of the previous page.
-        // For simplicity, this example skips this detail as it requires additional state management.
-        // In a real app, you would store the last document or its value for the ordering field.
-        // Here, we still fetch more than needed as a fallback due to the complexity of state management in this context.
-        final tempQuery = _firestore
-            .collection('products')
-            .limit(((filter.page - 1) * filter.limit).toInt());
-        final tempSnapshot = await tempQuery.get();
-        if (tempSnapshot.docs.isNotEmpty) {
-          final lastDoc = tempSnapshot.docs.last;
-          query = query.startAfterDocument(lastDoc);
+        final skipCount = (filter.page - 1) * filter.limit;
+        if (skipCount < totalCount) {
+          // For simplicity, we'll use limit and skip logic
+          // In production, consider using startAfter with document snapshots
+          final skipSnapshot = await query.limit(skipCount).get();
+          if (skipSnapshot.docs.isNotEmpty) {
+            paginatedQuery = query.startAfterDocument(skipSnapshot.docs.last);
+          }
         }
       }
 
-      final snapshot = await query.get();
-      final products = snapshot.docs
-          .map(
-            (doc) => ProductModel.fromJson(doc.data() as Map<String, dynamic>),
-          )
-          .toList();
-
-      // Get total count for pagination
-      final totalQuery = _firestore.collection('products');
-      final totalSnapshot = await totalQuery.get();
-      final totalCount = totalSnapshot.size;
+      final snapshot = await paginatedQuery.limit(filter.limit).get();
+      final products = snapshot.docs.map(_parseProductFromDoc).toList();
 
       final totalPages = (totalCount / filter.limit).ceil();
 
@@ -245,271 +239,541 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         hasPreviousPage: filter.page > 1,
       );
     } catch (e) {
-      print('Error getting products from Firestore: $e');
-
-      // Fallback to sample data
-      return await _getProductsFromSampleData(filter);
+      throw Exception('Failed to get products: $e');
     }
-  }
-
-  Future<ProductSearchResult> _getProductsFromSampleData(
-    ProductFilter filter,
-  ) async {
-    var products = await _sampleData.getProducts();
-
-    // Apply search filter
-    if (filter.hasSearch) {
-      final query = filter.searchQuery!.toLowerCase();
-      products = products
-          .where(
-            (p) =>
-                p.name.toLowerCase().contains(query) ||
-                p.description.toLowerCase().contains(query) ||
-                p.brandName.toLowerCase().contains(query) ||
-                p.tags.any((tag) => tag.toLowerCase().contains(query)),
-          )
-          .toList();
-    }
-
-    // Apply category filter
-    if (filter.categoryIds.isNotEmpty) {
-      products = products
-          .where((p) => filter.categoryIds.contains(p.categoryId))
-          .toList();
-    }
-
-    // Apply brand filter
-    if (filter.brandIds.isNotEmpty) {
-      products = products
-          .where((p) => filter.brandIds.contains(p.brandId))
-          .toList();
-    }
-
-    // Apply price range filter
-    if (filter.priceRange.hasRange) {
-      products = products.where((p) {
-        if (filter.priceRange.minPrice != null &&
-            p.price < filter.priceRange.minPrice!) {
-          return false;
-        }
-        if (filter.priceRange.maxPrice != null &&
-            p.price > filter.priceRange.maxPrice!) {
-          return false;
-        }
-        return true;
-      }).toList();
-    }
-
-    // Apply rating filter
-    if (filter.minRating != null) {
-      products = products.where((p) => p.rating >= filter.minRating!).toList();
-    }
-
-    // Apply featured filter
-    if (filter.isFeatured != null) {
-      products = products
-          .where((p) => p.isFeatured == filter.isFeatured)
-          .toList();
-    }
-
-    // Apply sale filter
-    if (filter.isOnSale != null) {
-      products = products.where((p) => p.isOnSale == filter.isOnSale).toList();
-    }
-
-    // Apply availability filter
-    switch (filter.availability) {
-      case ProductAvailability.inStock:
-        products = products.where((p) => p.isInStock).toList();
-        break;
-      case ProductAvailability.outOfStock:
-        products = products.where((p) => p.isOutOfStock).toList();
-        break;
-      case ProductAvailability.lowStock:
-        products = products.where((p) => p.isLowStock).toList();
-        break;
-      case ProductAvailability.all:
-        break;
-    }
-
-    // Apply sorting
-    switch (filter.sortBy) {
-      case SortOption.priceAsc:
-        products.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case SortOption.priceDesc:
-        products.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      case SortOption.ratingDesc:
-        products.sort((a, b) => b.rating.compareTo(a.rating));
-        break;
-      case SortOption.newest:
-        products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-      case SortOption.nameAsc:
-        products.sort((a, b) => a.name.compareTo(b.name));
-        break;
-      case SortOption.nameDesc:
-        products.sort((a, b) => b.name.compareTo(a.name));
-        break;
-      case SortOption.popular:
-        products.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
-        break;
-      case SortOption.relevance:
-      default:
-        // Keep original order for relevance
-        break;
-    }
-
-    final totalCount = products.length;
-    final totalPages = (totalCount / filter.limit).ceil();
-
-    // Apply pagination
-    final startIndex = (filter.page - 1) * filter.limit;
-    final endIndex = (startIndex + filter.limit).clamp(0, totalCount);
-    final paginatedProducts = products.sublist(
-      startIndex.clamp(0, totalCount),
-      endIndex,
-    );
-
-    return ProductSearchResult(
-      products: paginatedProducts,
-      totalCount: totalCount,
-      currentPage: filter.page,
-      totalPages: totalPages,
-      hasNextPage: filter.page < totalPages,
-      hasPreviousPage: filter.page > 1,
-    );
   }
 
   @override
   Future<List<ProductModel>> getFeaturedProducts({int limit = 10}) async {
     try {
-      final snapshot = await _firestore
-          .collection('products')
-          .where('isFeatured', isEqualTo: true)
+      final snapshot = await _productsCollection
           .where('isActive', isEqualTo: true)
-          .orderBy('rating', descending: true)
+          .where('isFeatured', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
           .limit(limit)
           .get();
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map(_parseProductFromDoc).toList();
     } catch (e) {
-      print('Error getting featured products: $e');
-
-      // Fallback to sample data
-      final products = await _sampleData.getProducts();
-      return products
-          .where((p) => p.isFeatured && p.isActive)
-          .take(limit)
-          .map((p) => ProductModel.fromEntity(p))
-          .toList();
+      throw Exception('Failed to get featured products: $e');
     }
   }
 
   @override
   Future<List<ProductModel>> getPopularProducts({int limit = 10}) async {
     try {
-      final snapshot = await _firestore
-          .collection('products')
+      final snapshot = await _productsCollection
           .where('isActive', isEqualTo: true)
           .orderBy('reviewCount', descending: true)
           .orderBy('rating', descending: true)
           .limit(limit)
           .get();
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map(_parseProductFromDoc).toList();
     } catch (e) {
-      print('Error getting popular products: $e');
-
-      // Fallback to sample data
-      final products = await _sampleData.getProducts();
-      final popularProducts = products.where((p) => p.isActive).toList()
-        ..sort((a, b) {
-          final aScore = a.reviewCount * a.rating;
-          final bScore = b.reviewCount * b.rating;
-          return bScore.compareTo(aScore);
-        });
-
-      return popularProducts
-          .take(limit)
-          .map((p) => ProductModel.fromEntity(p))
-          .toList();
+      throw Exception('Failed to get popular products: $e');
     }
   }
 
   @override
   Future<List<ProductModel>> getNewProducts({int limit = 10}) async {
     try {
-      final snapshot = await _firestore
-          .collection('products')
+      final snapshot = await _productsCollection
           .where('isActive', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .limit(limit)
           .get();
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .toList();
+      return snapshot.docs.map(_parseProductFromDoc).toList();
     } catch (e) {
-      print('Error getting new products: $e');
-
-      // Fallback to sample data
-      final products = await _sampleData.getProducts();
-      final newProducts = products.where((p) => p.isActive).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      return newProducts
-          .take(limit)
-          .map((p) => ProductModel.fromEntity(p))
-          .toList();
+      throw Exception('Failed to get new products: $e');
     }
   }
 
   @override
   Future<List<ProductModel>> getSaleProducts({int limit = 10}) async {
     try {
-      final snapshot = await _firestore
-          .collection('products')
+      final snapshot = await _productsCollection
           .where('isActive', isEqualTo: true)
           .where('originalPrice', isNull: false)
           .orderBy('originalPrice', descending: true)
           .limit(limit)
           .get();
 
-      return snapshot.docs
-          .map((doc) => ProductModel.fromJson(doc.data()))
-          .where((p) => p.isOnSale)
-          .toList();
+      return snapshot.docs.map(_parseProductFromDoc).toList();
     } catch (e) {
-      print('Error getting sale products: $e');
-
-      // Fallback to sample data
-      final products = await _sampleData.getProducts();
-      return products
-          .where((p) => p.isActive && p.isOnSale)
-          .take(limit)
-          .map((p) => ProductModel.fromEntity(p))
-          .toList();
+      throw Exception('Failed to get sale products: $e');
     }
   }
 
-  // Implement remaining methods...
-  // (Due to length constraints, I'll continue with the most important methods)
+  @override
+  Future<ProductSearchResult> getProductsByCategory(
+    String categoryId, {
+    ProductFilter? filter,
+  }) async {
+    try {
+      Query query = _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('categoryId', isEqualTo: categoryId);
+
+      if (filter != null) {
+        // Apply additional filters
+        if (filter.brandIds.isNotEmpty) {
+          query = query.where('brandId', whereIn: filter.brandIds);
+        }
+
+        if (filter.priceRange.hasRange) {
+          if (filter.priceRange.minPrice != null) {
+            query = query.where(
+              'price',
+              isGreaterThanOrEqualTo: filter.priceRange.minPrice,
+            );
+          }
+          if (filter.priceRange.maxPrice != null) {
+            query = query.where(
+              'price',
+              isLessThanOrEqualTo: filter.priceRange.maxPrice,
+            );
+          }
+        }
+
+        if (filter.minRating != null) {
+          query = query.where(
+            'rating',
+            isGreaterThanOrEqualTo: filter.minRating,
+          );
+        }
+
+        // Apply sorting
+        switch (filter.sortBy) {
+          case SortOption.priceAsc:
+            query = query.orderBy('price', descending: false);
+            break;
+          case SortOption.priceDesc:
+            query = query.orderBy('price', descending: true);
+            break;
+          case SortOption.ratingDesc:
+            query = query.orderBy('rating', descending: true);
+            break;
+          case SortOption.newest:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+          case SortOption.popular:
+            query = query.orderBy('reviewCount', descending: true);
+            break;
+          case SortOption.nameAsc:
+            query = query.orderBy('name', descending: false);
+            break;
+          case SortOption.nameDesc:
+            query = query.orderBy('name', descending: true);
+            break;
+          case SortOption.relevance:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+        }
+      } else {
+        query = query.orderBy('createdAt', descending: true);
+      }
+
+      final totalSnapshot = await query.get();
+      final totalCount = totalSnapshot.docs.length;
+
+      // Apply pagination
+      final pageSize = filter?.limit ?? 20;
+      final currentPage = filter?.page ?? 1;
+
+      Query paginatedQuery = query;
+      if (currentPage > 1) {
+        final skipCount = (currentPage - 1) * pageSize;
+        if (skipCount < totalCount) {
+          final skipSnapshot = await query.limit(skipCount).get();
+          if (skipSnapshot.docs.isNotEmpty) {
+            paginatedQuery = query.startAfterDocument(skipSnapshot.docs.last);
+          }
+        }
+      }
+
+      final snapshot = await paginatedQuery.limit(pageSize).get();
+      final products = snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+
+      final totalPages = (totalCount / pageSize).ceil();
+
+      return ProductSearchResult(
+        products: products.map((p) => p.toEntity()).toList(),
+        totalCount: totalCount,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      );
+    } catch (e) {
+      throw Exception('Failed to get products by category: $e');
+    }
+  }
+
+  @override
+  Future<List<ProductModel>> getRelatedProducts(
+    String productId, {
+    int limit = 5,
+  }) async {
+    try {
+      // Get the product to find related products
+      final productDoc = await _productsCollection.doc(productId).get();
+      if (!productDoc.exists) {
+        return [];
+      }
+
+      final productData = productDoc.data() as Map<String, dynamic>;
+      final categoryId = productData['categoryId'] as String?;
+      final brandId = productData['brandId'] as String?;
+
+      Query query = _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('id', isNotEqualTo: productId);
+
+      // Prefer same category
+      if (categoryId != null) {
+        query = query.where('categoryId', isEqualTo: categoryId);
+      }
+
+      final snapshot = await query.limit(limit * 2).get(); // Get more to filter
+      final products = snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+
+      // Prioritize same brand
+      if (brandId != null) {
+        products.sort((a, b) {
+          if (a.brandId == brandId && b.brandId != brandId) return -1;
+          if (a.brandId != brandId && b.brandId == brandId) return 1;
+          return b.rating.compareTo(a.rating);
+        });
+      }
+
+      return products.take(limit).toList();
+    } catch (e) {
+      throw Exception('Failed to get related products: $e');
+    }
+  }
+
+  @override
+  Future<List<ProductModel>> getFrequentlyBoughtTogether(
+    String productId, {
+    int limit = 3,
+  }) async {
+    try {
+      // This would typically require analytics data
+      // For now, return related products from same category
+      return await getRelatedProducts(productId, limit: limit);
+    } catch (e) {
+      throw Exception('Failed to get frequently bought together products: $e');
+    }
+  }
+
+  @override
+  Future<ProductSearchResult> getProductsByBrand(
+    String brandId, {
+    ProductFilter? filter,
+  }) async {
+    try {
+      Query query = _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('brandId', isEqualTo: brandId);
+
+      if (filter != null) {
+        // Apply additional filters
+        if (filter.categoryIds.isNotEmpty) {
+          query = query.where('categoryId', whereIn: filter.categoryIds);
+        }
+
+        if (filter.priceRange.hasRange) {
+          if (filter.priceRange.minPrice != null) {
+            query = query.where(
+              'price',
+              isGreaterThanOrEqualTo: filter.priceRange.minPrice,
+            );
+          }
+          if (filter.priceRange.maxPrice != null) {
+            query = query.where(
+              'price',
+              isLessThanOrEqualTo: filter.priceRange.maxPrice,
+            );
+          }
+        }
+
+        if (filter.minRating != null) {
+          query = query.where(
+            'rating',
+            isGreaterThanOrEqualTo: filter.minRating,
+          );
+        }
+
+        // Apply sorting
+        switch (filter.sortBy) {
+          case SortOption.priceAsc:
+            query = query.orderBy('price', descending: false);
+            break;
+          case SortOption.priceDesc:
+            query = query.orderBy('price', descending: true);
+            break;
+          case SortOption.ratingDesc:
+            query = query.orderBy('rating', descending: true);
+            break;
+          case SortOption.newest:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+          case SortOption.popular:
+            query = query.orderBy('reviewCount', descending: true);
+            break;
+          case SortOption.nameAsc:
+            query = query.orderBy('name', descending: false);
+            break;
+          case SortOption.nameDesc:
+            query = query.orderBy('name', descending: true);
+            break;
+          case SortOption.relevance:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+        }
+      } else {
+        query = query.orderBy('createdAt', descending: true);
+      }
+
+      final totalSnapshot = await query.get();
+      final totalCount = totalSnapshot.docs.length;
+
+      // Apply pagination
+      final pageSize = filter?.limit ?? 20;
+      final currentPage = filter?.page ?? 1;
+
+      Query paginatedQuery = query;
+      if (currentPage > 1) {
+        final skipCount = (currentPage - 1) * pageSize;
+        if (skipCount < totalCount) {
+          final skipSnapshot = await query.limit(skipCount).get();
+          if (skipSnapshot.docs.isNotEmpty) {
+            paginatedQuery = query.startAfterDocument(skipSnapshot.docs.last);
+          }
+        }
+      }
+
+      final snapshot = await paginatedQuery.limit(pageSize).get();
+      final products = snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+
+      final totalPages = (totalCount / pageSize).ceil();
+
+      return ProductSearchResult(
+        products: products.map((p) => p.toEntity()).toList(),
+        totalCount: totalCount,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      );
+    } catch (e) {
+      throw Exception('Failed to get products by brand: $e');
+    }
+  }
+
+  @override
+  Future<List<BrandModel>> getBrands() async {
+    try {
+      final snapshot = await _brandsCollection
+          .where('isActive', isEqualTo: true)
+          .orderBy('name')
+          .get();
+
+      return snapshot.docs.map(_parseBrandFromDoc).toList();
+    } catch (e) {
+      throw Exception('Failed to get brands: $e');
+    }
+  }
+
+  @override
+  Future<List<BrandModel>> getFeaturedBrands({int limit = 10}) async {
+    try {
+      final snapshot = await _brandsCollection
+          .where('isActive', isEqualTo: true)
+          .where('isFeatured', isEqualTo: true)
+          .orderBy('averageRating', descending: true)
+          .limit(limit)
+          .get();
+
+      return snapshot.docs.map(_parseBrandFromDoc).toList();
+    } catch (e) {
+      throw Exception('Failed to get featured brands: $e');
+    }
+  }
+
+  @override
+  Future<BrandModel?> getBrandById(String id) async {
+    try {
+      final doc = await _brandsCollection.doc(id).get();
+      if (doc.exists) {
+        return _parseBrandFromDocSnapshot(doc);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get brand by ID: $e');
+    }
+  }
 
   @override
   Future<ProductSearchResult> searchProducts(
     String query, {
     ProductFilter? filter,
   }) async {
-    final searchFilter = (filter ?? const ProductFilter()).copyWith(
-      searchQuery: query,
-    );
-    return getProducts(searchFilter);
+    try {
+      // Note: Firestore doesn't support full-text search natively
+      // This is a basic implementation using array-contains for tags
+      Query firestoreQuery = _productsCollection.where(
+        'isActive',
+        isEqualTo: true,
+      );
+
+      // Search in tags (basic text search)
+      if (query.isNotEmpty) {
+        final searchTerms = query.toLowerCase().split(' ');
+        // This is a simplified search - in production, use Algolia or similar
+        firestoreQuery = firestoreQuery.where(
+          'tags',
+          arrayContainsAny: searchTerms,
+        );
+      }
+
+      if (filter != null) {
+        // Apply filters
+        if (filter.categoryIds.isNotEmpty) {
+          firestoreQuery = firestoreQuery.where(
+            'categoryId',
+            whereIn: filter.categoryIds,
+          );
+        }
+
+        if (filter.brandIds.isNotEmpty) {
+          firestoreQuery = firestoreQuery.where(
+            'brandId',
+            whereIn: filter.brandIds,
+          );
+        }
+
+        if (filter.priceRange.hasRange) {
+          if (filter.priceRange.minPrice != null) {
+            firestoreQuery = firestoreQuery.where(
+              'price',
+              isGreaterThanOrEqualTo: filter.priceRange.minPrice,
+            );
+          }
+          if (filter.priceRange.maxPrice != null) {
+            firestoreQuery = firestoreQuery.where(
+              'price',
+              isLessThanOrEqualTo: filter.priceRange.maxPrice,
+            );
+          }
+        }
+
+        if (filter.minRating != null) {
+          firestoreQuery = firestoreQuery.where(
+            'rating',
+            isGreaterThanOrEqualTo: filter.minRating,
+          );
+        }
+
+        // Apply sorting
+        switch (filter.sortBy) {
+          case SortOption.priceAsc:
+            firestoreQuery = firestoreQuery.orderBy('price', descending: false);
+            break;
+          case SortOption.priceDesc:
+            firestoreQuery = firestoreQuery.orderBy('price', descending: true);
+            break;
+          case SortOption.ratingDesc:
+            firestoreQuery = firestoreQuery.orderBy('rating', descending: true);
+            break;
+          case SortOption.newest:
+            firestoreQuery = firestoreQuery.orderBy(
+              'createdAt',
+              descending: true,
+            );
+            break;
+          case SortOption.popular:
+            firestoreQuery = firestoreQuery.orderBy(
+              'reviewCount',
+              descending: true,
+            );
+            break;
+          case SortOption.nameAsc:
+            firestoreQuery = firestoreQuery.orderBy('name', descending: false);
+            break;
+          case SortOption.nameDesc:
+            firestoreQuery = firestoreQuery.orderBy('name', descending: true);
+            break;
+          case SortOption.relevance:
+            firestoreQuery = firestoreQuery.orderBy(
+              'createdAt',
+              descending: true,
+            );
+            break;
+        }
+      } else {
+        firestoreQuery = firestoreQuery.orderBy('createdAt', descending: true);
+      }
+
+      final totalSnapshot = await firestoreQuery.get();
+      final allProducts = totalSnapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+
+      // Client-side filtering for better search results
+      List<ProductModel> filteredProducts = allProducts;
+      if (query.isNotEmpty) {
+        final searchQuery = query.toLowerCase();
+        filteredProducts = allProducts.where((product) {
+          return product.name.toLowerCase().contains(searchQuery) ||
+              product.description.toLowerCase().contains(searchQuery) ||
+              product.brandName.toLowerCase().contains(searchQuery) ||
+              product.tags.any(
+                (tag) => tag.toLowerCase().contains(searchQuery),
+              );
+        }).toList();
+      }
+
+      final totalCount = filteredProducts.length;
+      final pageSize = filter?.limit ?? 20;
+      final currentPage = filter?.page ?? 1;
+      final startIndex = (currentPage - 1) * pageSize;
+      final endIndex = (startIndex + pageSize).clamp(0, totalCount);
+
+      final paginatedProducts = filteredProducts.sublist(
+        startIndex.clamp(0, totalCount),
+        endIndex,
+      );
+
+      final totalPages = (totalCount / pageSize).ceil();
+
+      return ProductSearchResult(
+        products: paginatedProducts.map((p) => p.toEntity()).toList(),
+        totalCount: totalCount,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      );
+    } catch (e) {
+      throw Exception('Failed to search products: $e');
+    }
   }
 
   @override
@@ -518,123 +782,46 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     int limit = 5,
   }) async {
     try {
-      // In a real implementation, you might have a dedicated search suggestions collection
-      final snapshot = await _firestore
-          .collection('products')
-          .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThan: '${query}z')
-          .limit(limit)
+      if (query.isEmpty) return [];
+
+      final snapshot = await _productsCollection
+          .where('isActive', isEqualTo: true)
+          .limit(50) // Get more products to generate suggestions
           .get();
 
-      return snapshot.docs.map((doc) => doc.data()['name'] as String).toList();
-    } catch (e) {
-      print('Error getting search suggestions: $e');
-
-      // Fallback to sample data
-      final products = await _sampleData.getProducts();
-      final suggestions = products
-          .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
-          .map((p) => p.name)
-          .take(limit)
+      final products = snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
           .toList();
 
-      return suggestions;
-    }
-  }
+      final suggestions = <String>{};
+      final searchQuery = query.toLowerCase();
 
-  @override
-  Future<void> trackProductView(String productId) async {
-    try {
-      await _firestore.collection('analytics').add({
-        'type': 'product_view',
-        'productId': productId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      for (final product in products) {
+        // Add product name if it contains the query
+        if (product.name.toLowerCase().contains(searchQuery)) {
+          suggestions.add(product.name);
+        }
+
+        // Add brand name if it contains the query
+        if (product.brandName.toLowerCase().contains(searchQuery)) {
+          suggestions.add(product.brandName);
+        }
+
+        // Add relevant tags
+        for (final tag in product.tags) {
+          if (tag.toLowerCase().contains(searchQuery)) {
+            suggestions.add(tag);
+          }
+        }
+
+        if (suggestions.length >= limit * 2) break;
+      }
+
+      return suggestions.take(limit).toList();
     } catch (e) {
-      print('Error tracking product view: $e');
-    }
-  }
-
-  @override
-  Future<void> trackProductSearch(String query) async {
-    try {
-      await _firestore.collection('analytics').add({
-        'type': 'product_search',
-        'query': query,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      print('Error tracking product search: $e');
-    }
-  }
-
-  // Placeholder implementations for remaining methods
-  @override
-  Future<ProductSearchResult> getProductsByCategory(
-    String categoryId, {
-    ProductFilter? filter,
-  }) async {
-    final categoryFilter = (filter ?? const ProductFilter()).copyWith(
-      categoryIds: [categoryId],
-    );
-    return getProducts(categoryFilter);
-  }
-
-  @override
-  Future<List<ProductModel>> getRelatedProducts(
-    String productId, {
-    int limit = 5,
-  }) async {
-    // Implementation would find products in same category or with similar tags
-    final products = await _sampleData.getProducts();
-    return products.take(limit).map((p) => ProductModel.fromEntity(p)).toList();
-  }
-
-  @override
-  Future<List<ProductModel>> getFrequentlyBoughtTogether(
-    String productId, {
-    int limit = 3,
-  }) async {
-    // Implementation would analyze purchase history
-    final products = await _sampleData.getProducts();
-    return products.take(limit).map((p) => ProductModel.fromEntity(p)).toList();
-  }
-
-  @override
-  Future<ProductSearchResult> getProductsByBrand(
-    String brandId, {
-    ProductFilter? filter,
-  }) async {
-    final brandFilter = (filter ?? const ProductFilter()).copyWith(
-      brandIds: [brandId],
-    );
-    return getProducts(brandFilter);
-  }
-
-  @override
-  Future<List<BrandModel>> getBrands() async {
-    final brands = await _sampleData.getBrands();
-    return brands.map((b) => BrandModel.fromEntity(b)).toList();
-  }
-
-  @override
-  Future<List<BrandModel>> getFeaturedBrands({int limit = 10}) async {
-    final brands = await _sampleData.getBrands();
-    return brands
-        .where((b) => b.isFeatured)
-        .take(limit)
-        .map((b) => BrandModel.fromEntity(b))
-        .toList();
-  }
-
-  @override
-  Future<BrandModel?> getBrandById(String id) async {
-    final brands = await _sampleData.getBrands();
-    try {
-      final brand = brands.firstWhere((b) => b.id == id);
-      return BrandModel.fromEntity(brand);
-    } catch (e) {
-      return null;
+      throw Exception('Failed to get search suggestions: $e');
     }
   }
 
@@ -644,78 +831,222 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     int page = 1,
     int limit = 20,
   }) async {
-    final reviews = await _sampleData.getReviews();
-    return reviews
-        .where((r) => r.productId == productId)
-        .skip((page - 1) * limit)
-        .take(limit)
-        .map((r) => ReviewModel.fromEntity(r))
-        .toList();
+    try {
+      Query query = _reviewsCollection
+          .where('productId', isEqualTo: productId)
+          .orderBy('createdAt', descending: true);
+
+      // Apply pagination
+      if (page > 1) {
+        final skipCount = (page - 1) * limit;
+        final skipSnapshot = await query.limit(skipCount).get();
+        if (skipSnapshot.docs.isNotEmpty) {
+          query = query.startAfterDocument(skipSnapshot.docs.last);
+        }
+      }
+
+      final snapshot = await query.limit(limit).get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return ReviewModel.fromMap(data);
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to get product reviews: $e');
+    }
   }
 
   @override
   Future<ReviewModel?> getReviewById(String id) async {
-    final reviews = await _sampleData.getReviews();
     try {
-      final review = reviews.firstWhere((r) => r.id == id);
-      return ReviewModel.fromEntity(review);
-    } catch (e) {
+      final doc = await _reviewsCollection.doc(id).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return ReviewModel.fromMap(data);
+      }
       return null;
+    } catch (e) {
+      throw Exception('Failed to get review by ID: $e');
     }
   }
 
   @override
   Future<ReviewModel> createReview(ReviewModel review) async {
-    // Implementation would save to Firestore
-    return review;
+    try {
+      final docRef = _reviewsCollection.doc(review.id);
+      await docRef.set(review.toJson());
+
+      // Update product review count and rating
+      await _updateProductReviewStats(review.productId);
+
+      return review;
+    } catch (e) {
+      throw Exception('Failed to create review: $e');
+    }
   }
 
   @override
   Future<ReviewModel> updateReview(ReviewModel review) async {
-    // Implementation would update in Firestore
-    return review;
+    try {
+      await _reviewsCollection.doc(review.id).update(review.toJson());
+
+      // Update product review stats
+      await _updateProductReviewStats(review.productId);
+
+      return review;
+    } catch (e) {
+      throw Exception('Failed to update review: $e');
+    }
   }
 
   @override
   Future<void> deleteReview(String id) async {
-    // Implementation would delete from Firestore
+    try {
+      final reviewDoc = await _reviewsCollection.doc(id).get();
+      if (reviewDoc.exists) {
+        final reviewData = reviewDoc.data() as Map<String, dynamic>;
+        final productId = reviewData['productId'] as String;
+
+        await _reviewsCollection.doc(id).delete();
+
+        // Update product review stats
+        await _updateProductReviewStats(productId);
+      }
+    } catch (e) {
+      throw Exception('Failed to delete review: $e');
+    }
   }
 
   @override
   Future<void> markReviewHelpful(String reviewId, bool isHelpful) async {
-    // Implementation would update review helpfulness
+    try {
+      final reviewDoc = await _reviewsCollection.doc(reviewId).get();
+      if (reviewDoc.exists) {
+        final reviewData = reviewDoc.data() as Map<String, dynamic>;
+        final currentHelpfulCount = reviewData['helpfulCount'] as int? ?? 0;
+        final currentNotHelpfulCount =
+            reviewData['notHelpfulCount'] as int? ?? 0;
+
+        final updates = <String, dynamic>{'isHelpful': isHelpful};
+
+        if (isHelpful) {
+          updates['helpfulCount'] = currentHelpfulCount + 1;
+        } else {
+          updates['notHelpfulCount'] = currentNotHelpfulCount + 1;
+        }
+
+        await _reviewsCollection.doc(reviewId).update(updates);
+      }
+    } catch (e) {
+      throw Exception('Failed to mark review helpful: $e');
+    }
+  }
+
+  // Helper method to update product review statistics
+  Future<void> _updateProductReviewStats(String productId) async {
+    try {
+      final reviewsSnapshot = await _reviewsCollection
+          .where('productId', isEqualTo: productId)
+          .get();
+
+      final reviews = reviewsSnapshot.docs;
+      final reviewCount = reviews.length;
+
+      if (reviewCount > 0) {
+        final totalRating = reviews.fold<double>(0.0, (total, doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return total + (data['rating'] as num).toDouble();
+        });
+        final averageRating = totalRating / reviewCount;
+
+        await _productsCollection.doc(productId).update({
+          'reviewCount': reviewCount,
+          'rating': averageRating,
+        });
+      } else {
+        await _productsCollection.doc(productId).update({
+          'reviewCount': 0,
+          'rating': 0.0,
+        });
+      }
+    } catch (e) {
+      // Log error in production using proper logging framework
+      print('Error updating product review stats: $e');
+    }
   }
 
   @override
   Future<bool> isProductInStock(String productId) async {
-    final product = await getProductById(productId);
-    return product?.isInStock ?? false;
+    try {
+      final doc = await _productsCollection.doc(productId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final stockQuantity = data['stockQuantity'] as int? ?? 0;
+        return stockQuantity > 0;
+      }
+      return false;
+    } catch (e) {
+      throw Exception('Failed to check product stock: $e');
+    }
   }
 
   @override
   Future<int> getProductStock(String productId) async {
-    final product = await getProductById(productId);
-    return product?.stockQuantity ?? 0;
+    try {
+      final doc = await _productsCollection.doc(productId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['stockQuantity'] as int? ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      throw Exception('Failed to get product stock: $e');
+    }
   }
 
   @override
   Future<List<ProductModel>> getLowStockProducts({int limit = 20}) async {
-    final products = await _sampleData.getProducts();
-    return products
-        .where((p) => p.isLowStock)
-        .take(limit)
-        .map((p) => ProductModel.fromEntity(p))
-        .toList();
+    try {
+      final snapshot = await _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('stockQuantity', isGreaterThan: 0)
+          .where(
+            'stockQuantity',
+            isLessThanOrEqualTo: 10,
+          ) // Low stock threshold
+          .orderBy('stockQuantity')
+          .limit(limit)
+          .get();
+
+      return snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get low stock products: $e');
+    }
   }
 
   @override
   Future<List<ProductModel>> getOutOfStockProducts({int limit = 20}) async {
-    final products = await _sampleData.getProducts();
-    return products
-        .where((p) => p.isOutOfStock)
-        .take(limit)
-        .map((p) => ProductModel.fromEntity(p))
-        .toList();
+    try {
+      final snapshot = await _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('stockQuantity', isEqualTo: 0)
+          .orderBy('updatedAt', descending: true)
+          .limit(limit)
+          .get();
+
+      return snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get out of stock products: $e');
+    }
   }
 
   @override
@@ -723,17 +1054,91 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     String vehicleModel, {
     ProductFilter? filter,
   }) async {
-    final products = await _sampleData.getProducts();
-    return products
-        .where((p) => p.compatibleVehicles.contains(vehicleModel))
-        .map((p) => ProductModel.fromEntity(p))
-        .toList();
+    try {
+      Query query = _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('compatibleVehicles', arrayContains: vehicleModel);
+
+      if (filter != null) {
+        // Apply additional filters
+        if (filter.categoryIds.isNotEmpty) {
+          query = query.where('categoryId', whereIn: filter.categoryIds);
+        }
+
+        if (filter.brandIds.isNotEmpty) {
+          query = query.where('brandId', whereIn: filter.brandIds);
+        }
+
+        if (filter.priceRange.hasRange) {
+          if (filter.priceRange.minPrice != null) {
+            query = query.where(
+              'price',
+              isGreaterThanOrEqualTo: filter.priceRange.minPrice,
+            );
+          }
+          if (filter.priceRange.maxPrice != null) {
+            query = query.where(
+              'price',
+              isLessThanOrEqualTo: filter.priceRange.maxPrice,
+            );
+          }
+        }
+
+        // Apply sorting
+        switch (filter.sortBy) {
+          case SortOption.priceAsc:
+            query = query.orderBy('price', descending: false);
+            break;
+          case SortOption.priceDesc:
+            query = query.orderBy('price', descending: true);
+            break;
+          case SortOption.ratingDesc:
+            query = query.orderBy('rating', descending: true);
+            break;
+          case SortOption.newest:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+          case SortOption.popular:
+            query = query.orderBy('reviewCount', descending: true);
+            break;
+          case SortOption.nameAsc:
+            query = query.orderBy('name', descending: false);
+            break;
+          case SortOption.nameDesc:
+            query = query.orderBy('name', descending: true);
+            break;
+          case SortOption.relevance:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+        }
+      } else {
+        query = query.orderBy('createdAt', descending: true);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to get products for vehicle: $e');
+    }
   }
 
   @override
   Future<List<String>> getCompatibleVehicles(String productId) async {
-    final product = await getProductById(productId);
-    return product?.compatibleVehicles ?? [];
+    try {
+      final doc = await _productsCollection.doc(productId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final compatibleVehicles = data['compatibleVehicles'] as List<dynamic>?;
+        return compatibleVehicles?.cast<String>() ?? [];
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to get compatible vehicles: $e');
+    }
   }
 
   @override
@@ -742,10 +1147,98 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     double maxPrice, {
     ProductFilter? filter,
   }) async {
-    final priceFilter = (filter ?? const ProductFilter()).copyWith(
-      priceRange: PriceRange(minPrice: minPrice, maxPrice: maxPrice),
-    );
-    return getProducts(priceFilter);
+    try {
+      Query query = _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('price', isGreaterThanOrEqualTo: minPrice)
+          .where('price', isLessThanOrEqualTo: maxPrice);
+
+      if (filter != null) {
+        // Apply additional filters
+        if (filter.categoryIds.isNotEmpty) {
+          query = query.where('categoryId', whereIn: filter.categoryIds);
+        }
+
+        if (filter.brandIds.isNotEmpty) {
+          query = query.where('brandId', whereIn: filter.brandIds);
+        }
+
+        if (filter.minRating != null) {
+          query = query.where(
+            'rating',
+            isGreaterThanOrEqualTo: filter.minRating,
+          );
+        }
+
+        // Apply sorting
+        switch (filter.sortBy) {
+          case SortOption.priceAsc:
+            query = query.orderBy('price', descending: false);
+            break;
+          case SortOption.priceDesc:
+            query = query.orderBy('price', descending: true);
+            break;
+          case SortOption.ratingDesc:
+            query = query.orderBy('rating', descending: true);
+            break;
+          case SortOption.newest:
+            query = query.orderBy('createdAt', descending: true);
+            break;
+          case SortOption.popular:
+            query = query.orderBy('reviewCount', descending: true);
+            break;
+          case SortOption.nameAsc:
+            query = query.orderBy('name', descending: false);
+            break;
+          case SortOption.nameDesc:
+            query = query.orderBy('name', descending: true);
+            break;
+          case SortOption.relevance:
+            query = query.orderBy('price', descending: false);
+            break;
+        }
+      } else {
+        query = query.orderBy('price', descending: false);
+      }
+
+      final totalSnapshot = await query.get();
+      final totalCount = totalSnapshot.docs.length;
+
+      // Apply pagination
+      final pageSize = filter?.limit ?? 20;
+      final currentPage = filter?.page ?? 1;
+
+      Query paginatedQuery = query;
+      if (currentPage > 1) {
+        final skipCount = (currentPage - 1) * pageSize;
+        if (skipCount < totalCount) {
+          final skipSnapshot = await query.limit(skipCount).get();
+          if (skipSnapshot.docs.isNotEmpty) {
+            paginatedQuery = query.startAfterDocument(skipSnapshot.docs.last);
+          }
+        }
+      }
+
+      final snapshot = await paginatedQuery.limit(pageSize).get();
+      final products = snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+
+      final totalPages = (totalCount / pageSize).ceil();
+
+      return ProductSearchResult(
+        products: products.map((p) => p.toEntity()).toList(),
+        totalCount: totalCount,
+        currentPage: currentPage,
+        totalPages: totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      );
+    } catch (e) {
+      throw Exception('Failed to get products in price range: $e');
+    }
   }
 
   @override
@@ -753,69 +1246,210 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     ProductFilter? filter,
     int limit = 20,
   }) async {
-    final saleFilter = (filter ?? const ProductFilter()).copyWith(
-      isOnSale: true,
-      limit: limit,
-    );
-    final result = await getProducts(saleFilter);
-    return result.products.map((p) => ProductModel.fromEntity(p)).toList();
+    try {
+      Query query = _productsCollection
+          .where('isActive', isEqualTo: true)
+          .where('originalPrice', isNull: false);
+
+      if (filter != null) {
+        // Apply additional filters
+        if (filter.categoryIds.isNotEmpty) {
+          query = query.where('categoryId', whereIn: filter.categoryIds);
+        }
+
+        if (filter.brandIds.isNotEmpty) {
+          query = query.where('brandId', whereIn: filter.brandIds);
+        }
+
+        if (filter.priceRange.hasRange) {
+          if (filter.priceRange.minPrice != null) {
+            query = query.where(
+              'price',
+              isGreaterThanOrEqualTo: filter.priceRange.minPrice,
+            );
+          }
+          if (filter.priceRange.maxPrice != null) {
+            query = query.where(
+              'price',
+              isLessThanOrEqualTo: filter.priceRange.maxPrice,
+            );
+          }
+        }
+
+        if (filter.minRating != null) {
+          query = query.where(
+            'rating',
+            isGreaterThanOrEqualTo: filter.minRating,
+          );
+        }
+      }
+
+      // Order by discount percentage (calculated client-side)
+      final snapshot = await query
+          .limit(limit * 2)
+          .get(); // Get more to sort by discount
+      final products = snapshot.docs
+          .map(
+            (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+
+      // Sort by discount percentage
+      products.sort((a, b) {
+        final discountA = a.originalPrice != null
+            ? ((a.originalPrice! - a.price) / a.originalPrice!) * 100
+            : 0.0;
+        final discountB = b.originalPrice != null
+            ? ((b.originalPrice! - b.price) / b.originalPrice!) * 100
+            : 0.0;
+        return discountB.compareTo(discountA);
+      });
+
+      return products.take(limit).toList();
+    } catch (e) {
+      throw Exception('Failed to get products on sale: $e');
+    }
+  }
+
+  @override
+  Future<void> trackProductView(String productId) async {
+    try {
+      final timestamp = DateTime.now();
+      await _analyticsCollection.add({
+        'type': 'product_view',
+        'productId': productId,
+        'timestamp': timestamp,
+        'date': timestamp.toIso8601String().split('T')[0], // YYYY-MM-DD format
+      });
+    } catch (e) {
+      // Don't throw error for analytics - just log it
+      print('Failed to track product view: $e');
+    }
+  }
+
+  @override
+  Future<void> trackProductSearch(String query) async {
+    try {
+      final timestamp = DateTime.now();
+      await _analyticsCollection.add({
+        'type': 'product_search',
+        'query': query,
+        'timestamp': timestamp,
+        'date': timestamp.toIso8601String().split('T')[0],
+      });
+    } catch (e) {
+      print('Failed to track product search: $e');
+    }
   }
 
   @override
   Future<void> trackCategoryView(String categoryId) async {
     try {
-      await _firestore.collection('analytics').add({
+      final timestamp = DateTime.now();
+      await _analyticsCollection.add({
         'type': 'category_view',
         'categoryId': categoryId,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': timestamp,
+        'date': timestamp.toIso8601String().split('T')[0],
       });
     } catch (e) {
-      print('Error tracking category view: $e');
+      print('Failed to track category view: $e');
     }
   }
 
   @override
   Future<void> trackBrandView(String brandId) async {
     try {
-      await _firestore.collection('analytics').add({
+      final timestamp = DateTime.now();
+      await _analyticsCollection.add({
         'type': 'brand_view',
         'brandId': brandId,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': timestamp,
+        'date': timestamp.toIso8601String().split('T')[0],
       });
     } catch (e) {
-      print('Error tracking brand view: $e');
+      print('Failed to track brand view: $e');
     }
   }
 
   @override
   Future<List<ProductModel>> getProductsByIds(List<String> productIds) async {
-    final products = <ProductModel>[];
-    for (final id in productIds) {
-      final product = await getProductById(id);
-      if (product != null) {
-        products.add(product);
+    try {
+      if (productIds.isEmpty) return [];
+
+      // Firestore 'in' queries are limited to 10 items
+      final chunks = <List<String>>[];
+      for (int i = 0; i < productIds.length; i += 10) {
+        chunks.add(productIds.sublist(i, (i + 10).clamp(0, productIds.length)));
       }
+
+      final allProducts = <ProductModel>[];
+      for (final chunk in chunks) {
+        final snapshot = await _productsCollection
+            .where('id', whereIn: chunk)
+            .where('isActive', isEqualTo: true)
+            .get();
+
+        final products = snapshot.docs
+            .map(
+              (doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>),
+            )
+            .toList();
+
+        allProducts.addAll(products);
+      }
+
+      return allProducts;
+    } catch (e) {
+      throw Exception('Failed to get products by IDs: $e');
     }
-    return products;
   }
 
   @override
   Future<Map<String, bool>> checkProductsAvailability(
     List<String> productIds,
   ) async {
-    final availability = <String, bool>{};
-    for (final id in productIds) {
-      availability[id] = await isProductInStock(id);
+    try {
+      final products = await getProductsByIds(productIds);
+      final availability = <String, bool>{};
+
+      for (final productId in productIds) {
+        final product = products.firstWhere(
+          (p) => p.id == productId,
+          orElse: () => throw StateError('Product not found'),
+        );
+        availability[productId] = product.stockQuantity > 0;
+      }
+
+      // Set unavailable for products not found
+      for (final productId in productIds) {
+        availability.putIfAbsent(productId, () => false);
+      }
+
+      return availability;
+    } catch (e) {
+      throw Exception('Failed to check products availability: $e');
     }
-    return availability;
   }
 
   @override
   Future<Map<String, int>> getProductsStock(List<String> productIds) async {
-    final stock = <String, int>{};
-    for (final id in productIds) {
-      stock[id] = await getProductStock(id);
+    try {
+      final products = await getProductsByIds(productIds);
+      final stock = <String, int>{};
+
+      for (final productId in productIds) {
+        try {
+          final product = products.firstWhere((p) => p.id == productId);
+          stock[productId] = product.stockQuantity;
+        } catch (e) {
+          stock[productId] = 0; // Product not found or inactive
+        }
+      }
+
+      return stock;
+    } catch (e) {
+      throw Exception('Failed to get products stock: $e');
     }
-    return stock;
   }
 }

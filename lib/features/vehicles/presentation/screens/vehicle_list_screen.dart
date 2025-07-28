@@ -29,16 +29,56 @@ class _VehicleListScreenState extends ConsumerState<VehicleListScreen>
   final _searchController = TextEditingController();
   bool _isSearching = false;
 
+  // Animation controllers for enhanced visual appeal
+  late AnimationController _listAnimationController;
+  late AnimationController _fabAnimationController;
+  late Animation<double> _fabScaleAnimation;
+  late Animation<Offset> _fabSlideAnimation;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // Initialize animation controllers
+    _listAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fabScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fabAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _fabSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _fabAnimationController,
+            curve: Curves.easeOutBack,
+          ),
+        );
+
+    // Start animations
+    _listAnimationController.forward();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _fabAnimationController.forward();
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _listAnimationController.dispose();
+    _fabAnimationController.dispose();
     super.dispose();
   }
 
@@ -47,130 +87,698 @@ class _VehicleListScreenState extends ConsumerState<VehicleListScreen>
     final currentUserAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: _isSearching ? _buildSearchField() : const Text('My Vehicles'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        scrolledUnderElevation: 3, // Increased for better Material 3 compliance
-        surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
-        actions: [
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchController.clear();
-                  ref
-                      .read(vehicleFilterStateProvider.notifier)
-                      .setSearchQuery(null);
-                }
-              });
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: _handleMenuAction,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'filter',
-                child: ListTile(
-                  leading: Icon(Icons.filter_list),
-                  title: Text('Filter Vehicles'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'sort',
-                child: ListTile(
-                  leading: Icon(Icons.sort),
-                  title: Text('Sort Vehicles'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'refresh',
-                child: ListTile(
-                  leading: Icon(Icons.refresh),
-                  title: Text('Refresh'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'All Vehicles'),
-            Tab(text: 'Active'),
-            Tab(text: 'Alerts'),
-          ],
-        ),
-      ),
+      backgroundColor: const Color(0xFFF8F9FA), // Tesla-like clean background
       body: currentUserAsync.when(
         data: (user) {
           if (user == null) {
             return _buildNotSignedInState();
           }
-          return _buildVehiclesContent(user.id);
+          return _buildModernVehiclesContent(user.id);
         },
-        loading: () => _buildLoadingState(),
-        error: (error, stack) => _buildErrorState(error.toString()),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/vehicles/add'),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Vehicle'),
+        loading: () => _buildModernLoadingState(),
+        error: (error, stack) => _buildModernErrorState(error.toString()),
       ),
     );
   }
 
-  Widget _buildSearchField() {
-    return TextField(
-      controller: _searchController,
-      autofocus: true,
-      decoration: InputDecoration(
-        hintText: 'Search vehicles...',
-        border: InputBorder.none,
-        hintStyle: TextStyle(color: Theme.of(context).hintColor),
-      ),
-      style: TextStyle(
-        color: Theme.of(context).textTheme.titleLarge?.color,
-        fontSize: 18.sp,
-      ),
-      onChanged: (value) {
-        ref.read(vehicleFilterStateProvider.notifier).setSearchQuery(value);
-      },
-    );
-  }
-
-  Widget _buildVehiclesContent(String userId) {
-    return Column(
-      children: [
-        // Vehicle Filter Bar
-        const VehicleFilterBar(),
-
-        // Vehicle Stats Card
-        Padding(
-          padding: EdgeInsets.all(16.w),
-          child: VehicleStatsCard(userId: userId),
+  Widget _buildModernVehiclesContent(String userId) {
+    return CustomScrollView(
+      slivers: [
+        // Modern App Bar
+        SliverAppBar(
+          expandedHeight: 120.h,
+          floating: true,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: FlexibleSpaceBar(
+            background: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFFFFF), Color(0xFFF8F9FA)],
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.w,
+                    vertical: 16.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'My Vehicles',
+                            style: TextStyle(
+                              fontSize: 32.sp,
+                              fontWeight:
+                                  FontWeight.w300, // Tesla-like thin font
+                              color: const Color(0xFF1A1A1A),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const Spacer(),
+                          _buildModernActionButton(
+                            Icons.search_rounded,
+                            () => setState(() => _isSearching = true),
+                          ),
+                          SizedBox(width: 12.w),
+                          _buildModernActionButton(
+                            Icons.add_rounded,
+                            () => context.push('/vehicles/add'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'Manage your fleet with ease',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Modern Stats Section
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            child: _buildModernStatsSection(userId),
+          ),
         ),
 
-        // Alerts Card
-        const VehicleAlertsCard(),
+        // Modern Tab Section
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+            child: _buildModernTabBar(),
+          ),
+        ),
 
         // Vehicles List
-        Expanded(
+        SliverFillRemaining(
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildVehiclesList(userId, null),
-              _buildVehiclesList(userId, VehicleStatus.active),
-              _buildAlertsTab(userId),
+              _buildModernVehiclesList(userId, null),
+              _buildModernVehiclesList(userId, VehicleStatus.active),
+              _buildModernAlertsTab(userId),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildModernActionButton(IconData icon, VoidCallback onPressed) {
+    return Container(
+      width: 44.w,
+      height: 44.w,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12.r),
+          child: Icon(icon, size: 20.sp, color: const Color(0xFF374151)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernStatsSection(String userId) {
+    final statsAsync = ref.watch(vehicleStatisticsProvider(userId));
+
+    return statsAsync.when(
+      data: (stats) => Container(
+        padding: EdgeInsets.all(24.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                'Total',
+                (stats['totalVehicles'] as int? ?? 0).toString(),
+                Icons.directions_car_outlined,
+                const Color(0xFF3B82F6),
+              ),
+            ),
+            Container(width: 1, height: 40.h, color: const Color(0xFFE5E7EB)),
+            Expanded(
+              child: _buildStatItem(
+                'Active',
+                (stats['activeVehicles'] as int? ?? 0).toString(),
+                Icons.check_circle_outline,
+                const Color(0xFF10B981),
+              ),
+            ),
+            Container(width: 1, height: 40.h, color: const Color(0xFFE5E7EB)),
+            Expanded(
+              child: _buildStatItem(
+                'Alerts',
+                ((stats['expiredDocuments'] as int? ?? 0) +
+                        (stats['expiringSoonDocuments'] as int? ?? 0))
+                    .toString(),
+                Icons.warning_amber_outlined,
+                const Color(0xFFF59E0B),
+              ),
+            ),
+          ],
+        ),
+      ),
+      loading: () => _buildStatsShimmer(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildStatItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Container(
+          width: 48.w,
+          height: 48.w,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Icon(icon, size: 24.sp, color: color),
+        ),
+        SizedBox(height: 12.h),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF111827),
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF6B7280),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernTabBar() {
+    return Container(
+      height: 48.h,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: const Color(0xFF111827),
+        unselectedLabelColor: const Color(0xFF6B7280),
+        labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w500,
+        ),
+        tabs: const [
+          Tab(text: 'All'),
+          Tab(text: 'Active'),
+          Tab(text: 'Alerts'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppBarTitle() {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Icon(
+            Icons.directions_car_rounded,
+            size: 24.sp,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'My Vehicles',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Text(
+                'Manage your fleet',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        autofocus: true,
+        decoration: InputDecoration(
+          hintText: 'Search vehicles...',
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 16.w,
+            vertical: 12.h,
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 16.sp,
+        ),
+        onChanged: (value) {
+          ref.read(vehicleFilterStateProvider.notifier).setSearchQuery(value);
+        },
+      ),
+    );
+  }
+
+  Widget _buildModernVehiclesList(String userId, VehicleStatus? statusFilter) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final vehiclesAsync = statusFilter == null
+            ? ref.watch(filteredVehiclesProvider)
+            : ref.watch(userVehiclesProvider(userId));
+
+        return vehiclesAsync.when(
+          data: (vehicles) {
+            final filteredVehicles = statusFilter == null
+                ? vehicles
+                : vehicles.where((v) => v.status == statusFilter).toList();
+
+            if (filteredVehicles.isEmpty) {
+              return _buildModernEmptyState();
+            }
+
+            return Container(
+              color: const Color(0xFFF8F9FA),
+              child: RefreshIndicator(
+                onRefresh: () => _refreshVehicles(userId),
+                color: const Color(0xFF3B82F6),
+                child: ListView.builder(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.w,
+                    vertical: 16.h,
+                  ),
+                  itemCount: filteredVehicles.length,
+                  itemBuilder: (context, index) {
+                    final vehicle = filteredVehicles[index];
+                    return AnimatedBuilder(
+                      animation: _listAnimationController,
+                      builder: (context, child) {
+                        final animationDelay = index * 0.1;
+                        final animationValue = Curves.easeOutCubic.transform(
+                          (_listAnimationController.value - animationDelay)
+                              .clamp(0.0, 1.0),
+                        );
+
+                        return Transform.translate(
+                          offset: Offset(0, 30 * (1 - animationValue)),
+                          child: Opacity(
+                            opacity: animationValue,
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: 16.h),
+                              child: _buildModernVehicleCard(vehicle),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+          loading: () => _buildModernLoadingList(),
+          error: (error, stack) => _buildModernErrorState(error.toString()),
+        );
+      },
+    );
+  }
+
+  Widget _buildModernVehicleCard(Vehicle vehicle) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _viewVehicleDetails(vehicle.id),
+          borderRadius: BorderRadius.circular(20.r),
+          child: Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Vehicle Image
+                    Container(
+                      width: 80.w,
+                      height: 80.w,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.r),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF3B82F6).withOpacity(0.1),
+                            const Color(0xFF8B5CF6).withOpacity(0.1),
+                          ],
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16.r),
+                        child: vehicle.primaryImageUrl != null
+                            ? Image.network(
+                                vehicle.primaryImageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildModernPlaceholderImage(),
+                              )
+                            : _buildModernPlaceholderImage(),
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
+                    // Vehicle Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  vehicle.displayName,
+                                  style: TextStyle(
+                                    fontSize: 20.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF111827),
+                                    letterSpacing: -0.3,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              _buildModernStatusChip(vehicle.status),
+                            ],
+                          ),
+                          SizedBox(height: 8.h),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 6.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Text(
+                              vehicle.plateNumber,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF374151),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+                          Row(
+                            children: [
+                              _buildModernInfoChip(
+                                Icons.palette_outlined,
+                                vehicle.color,
+                              ),
+                              SizedBox(width: 8.w),
+                              _buildModernInfoChip(
+                                Icons.local_gas_station_outlined,
+                                vehicle.fuelType.displayName,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernPlaceholderImage() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF3B82F6).withOpacity(0.1),
+            const Color(0xFF8B5CF6).withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Icon(
+        Icons.directions_car_outlined,
+        size: 32.sp,
+        color: const Color(0xFF6B7280),
+      ),
+    );
+  }
+
+  Widget _buildModernStatusChip(VehicleStatus status) {
+    Color color;
+    String text;
+
+    switch (status) {
+      case VehicleStatus.active:
+        color = const Color(0xFF10B981);
+        text = 'Active';
+        break;
+      case VehicleStatus.inactive:
+        color = const Color(0xFF6B7280);
+        text = 'Inactive';
+        break;
+      case VehicleStatus.scrapped:
+        color = const Color(0xFFF59E0B);
+        text = 'Scrapped';
+        break;
+      case VehicleStatus.sold:
+        color = const Color(0xFFEF4444);
+        text = 'Sold';
+        break;
+      case VehicleStatus.stolen:
+        color = const Color(0xFFDC2626);
+        text = 'Stolen';
+        break;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6.r),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernInfoChip(IconData icon, String text) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(6.r),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.sp, color: const Color(0xFF6B7280)),
+          SizedBox(width: 4.w),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF374151),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernEmptyState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120.w,
+              height: 120.w,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(60.r),
+              ),
+              child: Icon(
+                Icons.directions_car_outlined,
+                size: 48.sp,
+                color: const Color(0xFF9CA3AF),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              'No vehicles yet',
+              style: TextStyle(
+                fontSize: 24.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Add your first vehicle to get started',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF6B7280),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32.h),
+            ElevatedButton.icon(
+              onPressed: () => context.push('/vehicles/add'),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Vehicle'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -208,18 +816,38 @@ class _VehicleListScreenState extends ConsumerState<VehicleListScreen>
                   itemCount: filteredVehicles.length,
                   itemBuilder: (context, index) {
                     final vehicle = filteredVehicles[index];
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 12.h),
-                      child: VehicleCard(
-                        vehicle: vehicle,
-                        onTap: () => _viewVehicleDetails(vehicle.id),
-                        onEdit: () => _editVehicle(vehicle.id),
-                        onDelete: () => _deleteVehicle(vehicle),
-                        onViewDocuments: () =>
-                            _viewVehicleDocuments(vehicle.id),
-                        onViewMaintenance: () =>
-                            _viewVehicleMaintenance(vehicle.id),
-                      ),
+                    return AnimatedBuilder(
+                      animation: _listAnimationController,
+                      builder: (context, child) {
+                        final animationDelay = index * 0.1;
+                        final animationValue = Curves.easeOutBack.transform(
+                          (_listAnimationController.value - animationDelay)
+                              .clamp(0.0, 1.0),
+                        );
+
+                        return Transform.translate(
+                          offset: Offset(0, 50 * (1 - animationValue)),
+                          child: Opacity(
+                            opacity: animationValue,
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: 16.h),
+                              child: Hero(
+                                tag: 'vehicle_card_${vehicle.id}',
+                                child: VehicleCard(
+                                  vehicle: vehicle,
+                                  onTap: () => _viewVehicleDetails(vehicle.id),
+                                  onEdit: () => _editVehicle(vehicle.id),
+                                  onDelete: () => _deleteVehicle(vehicle),
+                                  onViewDocuments: () =>
+                                      _viewVehicleDocuments(vehicle.id),
+                                  onViewMaintenance: () =>
+                                      _viewVehicleMaintenance(vehicle.id),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -362,6 +990,269 @@ class _VehicleListScreenState extends ConsumerState<VehicleListScreen>
         ],
       ),
     );
+  }
+
+  Widget _buildModernLoadingState() {
+    return Container(
+      color: const Color(0xFFF8F9FA),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 60.w,
+              height: 60.w,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                  strokeWidth: 3,
+                ),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              'Loading vehicles...',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6B7280),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernLoadingList() {
+    return Container(
+      color: const Color(0xFFF8F9FA),
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+        itemCount: 3,
+        itemBuilder: (context, index) => Padding(
+          padding: EdgeInsets.only(bottom: 16.h),
+          child: _buildVehicleCardShimmer(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVehicleCardShimmer() {
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 80.w,
+            height: 80.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+          ),
+          SizedBox(width: 20.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 20.h,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Container(
+                  width: 100.w,
+                  height: 16.h,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    Container(
+                      width: 60.w,
+                      height: 16.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Container(
+                      width: 60.w,
+                      height: 16.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsShimmer() {
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildStatShimmerItem()),
+          Container(width: 1, height: 40.h, color: const Color(0xFFE5E7EB)),
+          Expanded(child: _buildStatShimmerItem()),
+          Container(width: 1, height: 40.h, color: const Color(0xFFE5E7EB)),
+          Expanded(child: _buildStatShimmerItem()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatShimmerItem() {
+    return Column(
+      children: [
+        Container(
+          width: 48.w,
+          height: 48.w,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          width: 40.w,
+          height: 20.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Container(
+          width: 60.w,
+          height: 16.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernErrorState(String error) {
+    return Container(
+      color: const Color(0xFFF8F9FA),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120.w,
+                height: 120.w,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(60.r),
+                ),
+                child: Icon(
+                  Icons.error_outline_rounded,
+                  size: 48.sp,
+                  color: const Color(0xFFEF4444),
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                'Something went wrong',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF111827),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'Unable to load vehicles. Please try again.',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF6B7280),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 32.h),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(userVehiclesProvider),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.w,
+                    vertical: 16.h,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernAlertsTab(String userId) {
+    // For now, return a simple placeholder - you can implement this later
+    return _buildModernEmptyState();
   }
 
   Widget _buildLoadingState() {

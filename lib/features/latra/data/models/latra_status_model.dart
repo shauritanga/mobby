@@ -86,6 +86,7 @@ class LATRAStatusModel extends LATRAStatus {
   }
 
   /// Create copy with updated fields
+  @override
   LATRAStatusModel copyWith({
     String? id,
     String? applicationId,

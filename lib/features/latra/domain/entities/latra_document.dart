@@ -72,8 +72,9 @@ class LATRADocument extends Equatable {
   /// Get file size in human readable format
   String get fileSizeFormatted {
     if (fileSize < 1024) return '${fileSize}B';
-    if (fileSize < 1024 * 1024)
+    if (fileSize < 1024 * 1024) {
       return '${(fileSize / 1024).toStringAsFixed(1)}KB';
+    }
     return '${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 

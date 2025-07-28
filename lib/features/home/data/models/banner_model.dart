@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/banner.dart';
 
-part 'banner_model.g.dart';
-
-@JsonSerializable()
 class BannerModel extends Banner {
   const BannerModel({
     required super.id,
@@ -19,10 +15,44 @@ class BannerModel extends Banner {
     super.expiresAt,
   });
 
-  factory BannerModel.fromJson(Map<String, dynamic> json) =>
-      _$BannerModelFromJson(json);
+  factory BannerModel.fromMap(Map<String, dynamic> map) {
+    return BannerModel(
+      id: map['id'] as String,
+      title: map['title'] as String,
+      subtitle: map['subtitle'] as String,
+      imageUrl: map['imageUrl'] as String,
+      actionUrl: map['actionUrl'] as String?,
+      actionText: map['actionText'] as String,
+      colorHex: map['colorHex'] as String,
+      priority: map['priority'] as int,
+      isActive: map['isActive'] as bool,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      expiresAt: map['expiresAt'] != null
+          ? DateTime.parse(map['expiresAt'] as String)
+          : null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$BannerModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'subtitle': subtitle,
+      'imageUrl': imageUrl,
+      'actionUrl': actionUrl,
+      'actionText': actionText,
+      'colorHex': colorHex,
+      'priority': priority,
+      'isActive': isActive,
+      'createdAt': createdAt.toIso8601String(),
+      'expiresAt': expiresAt?.toIso8601String(),
+    };
+  }
+
+  // For backward compatibility
+  factory BannerModel.fromJson(Map<String, dynamic> json) =>
+      BannerModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory BannerModel.fromEntity(Banner banner) {
     return BannerModel(

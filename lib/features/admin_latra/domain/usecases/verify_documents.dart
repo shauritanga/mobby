@@ -1,20 +1,23 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../../latra/domain/entities/latra_document.dart';
 import '../entities/verification_status.dart';
 import '../repositories/admin_latra_repository.dart';
 
 /// Get all documents use case
-class GetAllDocuments implements UseCase<List<LATRADocument>, GetAllDocumentsParams> {
+class GetAllDocuments
+    implements UseCase<List<LATRADocument>, GetAllDocumentsParams> {
   final AdminLATRARepository repository;
 
   const GetAllDocuments(this.repository);
 
   @override
-  Future<Either<Failure, List<LATRADocument>>> call(GetAllDocumentsParams params) async {
+  Future<Either<Failure, List<LATRADocument>>> call(
+    GetAllDocumentsParams params,
+  ) async {
     return await repository.getAllDocuments(
       status: params.status,
       type: params.type,
@@ -47,17 +50,28 @@ class GetAllDocumentsParams extends Equatable {
   });
 
   @override
-  List<Object?> get props => [status, type, startDate, endDate, searchQuery, page, limit];
+  List<Object?> get props => [
+    status,
+    type,
+    startDate,
+    endDate,
+    searchQuery,
+    page,
+    limit,
+  ];
 }
 
 /// Verify document use case
-class VerifyDocument implements UseCase<VerificationStatus, VerifyDocumentParams> {
+class VerifyDocument
+    implements UseCase<VerificationStatus, VerifyDocumentParams> {
   final AdminLATRARepository repository;
 
   const VerifyDocument(this.repository);
 
   @override
-  Future<Either<Failure, VerificationStatus>> call(VerifyDocumentParams params) async {
+  Future<Either<Failure, VerificationStatus>> call(
+    VerifyDocumentParams params,
+  ) async {
     if (params.documentId.isEmpty) {
       return const Left(ValidationFailure('Document ID is required'));
     }
@@ -96,13 +110,17 @@ class VerifyDocumentParams extends Equatable {
 }
 
 /// Get document verifications use case
-class GetDocumentVerifications implements UseCase<List<VerificationStatus>, GetDocumentVerificationsParams> {
+class GetDocumentVerifications
+    implements
+        UseCase<List<VerificationStatus>, GetDocumentVerificationsParams> {
   final AdminLATRARepository repository;
 
   const GetDocumentVerifications(this.repository);
 
   @override
-  Future<Either<Failure, List<VerificationStatus>>> call(GetDocumentVerificationsParams params) async {
+  Future<Either<Failure, List<VerificationStatus>>> call(
+    GetDocumentVerificationsParams params,
+  ) async {
     if (params.documentId.isEmpty) {
       return const Left(ValidationFailure('Document ID is required'));
     }
@@ -114,22 +132,23 @@ class GetDocumentVerifications implements UseCase<List<VerificationStatus>, GetD
 class GetDocumentVerificationsParams extends Equatable {
   final String documentId;
 
-  const GetDocumentVerificationsParams({
-    required this.documentId,
-  });
+  const GetDocumentVerificationsParams({required this.documentId});
 
   @override
   List<Object?> get props => [documentId];
 }
 
 /// Get verification history use case
-class GetVerificationHistory implements UseCase<List<VerificationStatus>, GetVerificationHistoryParams> {
+class GetVerificationHistory
+    implements UseCase<List<VerificationStatus>, GetVerificationHistoryParams> {
   final AdminLATRARepository repository;
 
   const GetVerificationHistory(this.repository);
 
   @override
-  Future<Either<Failure, List<VerificationStatus>>> call(GetVerificationHistoryParams params) async {
+  Future<Either<Failure, List<VerificationStatus>>> call(
+    GetVerificationHistoryParams params,
+  ) async {
     return await repository.getVerificationHistory(
       verifiedBy: params.verifiedBy,
       startDate: params.startDate,
@@ -160,13 +179,16 @@ class GetVerificationHistoryParams extends Equatable {
 }
 
 /// Get verification analytics use case
-class GetVerificationAnalytics implements UseCase<Map<String, dynamic>, GetVerificationAnalyticsParams> {
+class GetVerificationAnalytics
+    implements UseCase<Map<String, dynamic>, GetVerificationAnalyticsParams> {
   final AdminLATRARepository repository;
 
   const GetVerificationAnalytics(this.repository);
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> call(GetVerificationAnalyticsParams params) async {
+  Future<Either<Failure, Map<String, dynamic>>> call(
+    GetVerificationAnalyticsParams params,
+  ) async {
     return await repository.getVerificationAnalytics(
       startDate: params.startDate,
       endDate: params.endDate,
@@ -178,23 +200,23 @@ class GetVerificationAnalyticsParams extends Equatable {
   final DateTime? startDate;
   final DateTime? endDate;
 
-  const GetVerificationAnalyticsParams({
-    this.startDate,
-    this.endDate,
-  });
+  const GetVerificationAnalyticsParams({this.startDate, this.endDate});
 
   @override
   List<Object?> get props => [startDate, endDate];
 }
 
 /// Search documents use case
-class SearchDocuments implements UseCase<List<LATRADocument>, SearchDocumentsParams> {
+class SearchDocuments
+    implements UseCase<List<LATRADocument>, SearchDocumentsParams> {
   final AdminLATRARepository repository;
 
   const SearchDocuments(this.repository);
 
   @override
-  Future<Either<Failure, List<LATRADocument>>> call(SearchDocumentsParams params) async {
+  Future<Either<Failure, List<LATRADocument>>> call(
+    SearchDocumentsParams params,
+  ) async {
     if (params.query.isEmpty) {
       return const Left(ValidationFailure('Search query is required'));
     }

@@ -1,23 +1,54 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
-
 import '../../../cart/presentation/providers/cart_providers.dart';
 import '../../../vehicles/presentation/providers/vehicle_providers.dart';
+import '../../../products/domain/entities/wishlist.dart';
+import '../../../products/presentation/providers/user_product_providers.dart'
+    as user_products;
 import 'profile_providers.dart';
 
 /// Profile integration providers for connecting profile with other features
 /// Following specifications from FEATURES_DOCUMENTATION.md - Integrate profile functionality
 /// with existing features like wishlist, cart, and user-specific data
 
-// User-specific wishlist provider
+// User-specific wishlist provider (returns product IDs)
 final userWishlistProvider = FutureProvider<List<String>>((ref) async {
   final currentUser = ref.watch(currentUserProvider).value;
   if (currentUser == null) return [];
 
-  // TODO: Implement actual wishlist fetching
-  // For now, return empty list
-  return [];
+  // Get wishlist products and extract IDs
+  final wishlistProducts = await ref.watch(
+    user_products.wishlistProductsProvider(currentUser.id).future,
+  );
+  return wishlistProducts.map((product) => product.id).toList();
+});
+
+// User wishlist with full product data (returns Wishlist object)
+final userWishlistWithProductsProvider = FutureProvider<Wishlist>((ref) async {
+  final currentUser = ref.watch(currentUserProvider).value;
+  if (currentUser == null) {
+    return Wishlist(
+      id: 'empty',
+      userId: '',
+      products: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  // Get wishlist products directly from the user product provider
+  final wishlistProducts = await ref.watch(
+    user_products.wishlistProductsProvider(currentUser.id).future,
+  );
+
+  return Wishlist(
+    id: 'wishlist_${currentUser.id}',
+    userId: currentUser.id,
+    products: wishlistProducts,
+    createdAt: DateTime.now(),
+    updatedAt: DateTime.now(),
+  );
 });
 
 // User-specific cart provider
@@ -28,7 +59,7 @@ final userCartSummaryProvider = FutureProvider<Map<String, dynamic>>((
   if (currentUser == null) return {};
 
   // Get cart data for the current user
-  final cartState = ref.watch(userCartProvider(currentUser.id));
+  final cartState = ref.watch(userCartProvider);
   return cartState.when(
     data: (cart) => {
       'items': cart.items,
@@ -45,9 +76,11 @@ final userRecentlyViewedProvider = FutureProvider<List<String>>((ref) async {
   final currentUser = ref.watch(currentUserProvider).value;
   if (currentUser == null) return [];
 
-  // TODO: Implement actual recently viewed fetching
-  // For now, return empty list
-  return [];
+  // Get recently viewed products and extract IDs
+  final recentlyViewedProducts = await ref.watch(
+    user_products.recentlyViewedProductsProvider(currentUser.id).future,
+  );
+  return recentlyViewedProducts.map((product) => product.id).toList();
 });
 
 // User profile completion status
@@ -88,6 +121,18 @@ final profileCompletionStatusProvider = Provider<Map<String, bool>>((ref) {
 // User onboarding status
 final userOnboardingStatusProvider = Provider<Map<String, bool>>((ref) {
   final completionStatus = ref.watch(profileCompletionStatusProvider);
+  final currentUser = ref.watch(currentUserProvider).value;
+
+  // Check if user has used wishlist
+  bool wishlistUsed = false;
+  if (currentUser != null) {
+    final wishlistAsync = ref.watch(userWishlistProvider);
+    wishlistUsed = wishlistAsync.when(
+      data: (wishlist) => wishlist.isNotEmpty,
+      loading: () => false,
+      error: (error, stack) => false,
+    );
+  }
 
   return {
     'profileSetup': completionStatus['hasProfile'] == true,
@@ -95,8 +140,9 @@ final userOnboardingStatusProvider = Provider<Map<String, bool>>((ref) {
     'paymentAdded': completionStatus['hasPaymentMethod'] == true,
     'emailVerified': completionStatus['hasVerifiedEmail'] == true,
     'phoneAdded': completionStatus['hasPhoneNumber'] == true,
-    'firstOrderPlaced': false, // TODO: Implement order checking
-    'wishlistUsed': false, // TODO: Implement wishlist checking
+    'firstOrderPlaced':
+        false, // Will be implemented when order system is available
+    'wishlistUsed': wishlistUsed,
   };
 });
 
@@ -131,10 +177,10 @@ final userActivitySummaryProvider = FutureProvider<Map<String, dynamic>>((
     'vehicleCount': vehicles.length,
     'expiredDocumentsCount': expiredDocuments.length,
     'expiringSoonDocumentsCount': expiringSoonDocuments.length,
-    'orderCount': 0, // TODO: Implement order counting
-    'reviewCount': 0, // TODO: Implement review counting
+    'orderCount': 0, // Will be implemented when order system is available
+    'reviewCount': 0, // Will be implemented when review system is available
     'memberSince': currentUser.createdAt,
-    'lastActive': DateTime.now(), // TODO: Implement last active tracking
+    'lastActive': currentUser.updatedAt ?? currentUser.createdAt,
   };
 });
 

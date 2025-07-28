@@ -24,7 +24,8 @@ class ProductCard extends ConsumerStatefulWidget {
   ConsumerState<ProductCard> createState() => _ProductCardState();
 }
 
-class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProviderStateMixin {
+class _ProductCardState extends ConsumerState<ProductCard>
+    with SingleTickerProviderStateMixin {
   bool _isPressed = false;
 
   void _onTapDown(TapDownDetails details) {
@@ -48,13 +49,11 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final isInWishlist = ref.isProductInWishlist(widget.product.id);
-    
+
     return Card(
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
       child: AnimatedScale(
         scale: _isPressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 150),
@@ -64,7 +63,9 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
           onTapUp: _onTapUp,
           onTapCancel: _onTapCancel,
           borderRadius: BorderRadius.circular(12.r),
-          child: widget.isGridView ? _buildGridCard(context, isInWishlist) : _buildListCard(context, isInWishlist),
+          child: widget.isGridView
+              ? _buildGridCard(context, isInWishlist)
+              : _buildListCard(context, isInWishlist),
         ),
       ),
     );
@@ -75,33 +76,33 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Product Image
-        Expanded(
-          flex: 3,
-          child: _buildProductImage(context, isInWishlist),
-        ),
-        
+        Expanded(flex: 4, child: _buildProductImage(context, isInWishlist)),
+
         // Product Info
         Expanded(
-          flex: 2,
+          flex: 3,
           child: Padding(
             padding: EdgeInsets.all(12.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Product Name
-                Text(
-                  widget.product.name,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    height: 1.2,
+                Flexible(
+                  child: Text(
+                    widget.product.name,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                
+
                 SizedBox(height: 4.h),
-                
+
                 // Brand
                 Text(
                   widget.product.brandName,
@@ -109,16 +110,16 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
                     fontSize: 12.sp,
                     color: Theme.of(context).hintColor,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                
+
                 const Spacer(),
-                
+
                 // Price and Rating
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildPriceSection(context),
-                    ),
+                    Expanded(child: _buildPriceSection(context)),
                     _buildRatingSection(context),
                   ],
                 ),
@@ -142,9 +143,9 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
             height: 100.w,
             child: _buildProductImage(context, isInWishlist),
           ),
-          
+
           SizedBox(width: 12.w),
-          
+
           // Product Info
           Expanded(
             child: Column(
@@ -161,9 +162,9 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                
+
                 SizedBox(height: 4.h),
-                
+
                 // Brand
                 Text(
                   widget.product.brandName,
@@ -172,9 +173,9 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
                     color: Theme.of(context).hintColor,
                   ),
                 ),
-                
+
                 SizedBox(height: 8.h),
-                
+
                 // Short Description
                 if (widget.product.shortDescription != null) ...[
                   Text(
@@ -189,7 +190,7 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
                   ),
                   SizedBox(height: 8.h),
                 ],
-                
+
                 // Price, Rating, and Stock
                 Row(
                   children: [
@@ -225,8 +226,12 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(12.r),
               topRight: Radius.circular(12.r),
-              bottomLeft: widget.isGridView ? Radius.zero : Radius.circular(12.r),
-              bottomRight: widget.isGridView ? Radius.zero : Radius.circular(12.r),
+              bottomLeft: widget.isGridView
+                  ? Radius.zero
+                  : Radius.circular(12.r),
+              bottomRight: widget.isGridView
+                  ? Radius.zero
+                  : Radius.circular(12.r),
             ),
             color: Theme.of(context).cardColor,
           ),
@@ -234,19 +239,19 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(12.r),
               topRight: Radius.circular(12.r),
-              bottomLeft: widget.isGridView ? Radius.zero : Radius.circular(12.r),
-              bottomRight: widget.isGridView ? Radius.zero : Radius.circular(12.r),
+              bottomLeft: widget.isGridView
+                  ? Radius.zero
+                  : Radius.circular(12.r),
+              bottomRight: widget.isGridView
+                  ? Radius.zero
+                  : Radius.circular(12.r),
             ),
             child: CachedNetworkImage(
               imageUrl: widget.product.imageUrl,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
                 color: Colors.grey[100],
-                child: Icon(
-                  Icons.image,
-                  size: 40.sp,
-                  color: Colors.grey[400],
-                ),
+                child: Icon(Icons.image, size: 40.sp, color: Colors.grey[400]),
               ),
               errorWidget: (context, url, error) => Container(
                 color: Colors.grey[100],
@@ -259,7 +264,7 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
             ),
           ),
         ),
-        
+
         // Sale Badge
         if (widget.product.isOnSale)
           Positioned(
@@ -281,7 +286,7 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
               ),
             ),
           ),
-        
+
         // Wishlist Button
         Positioned(
           top: 8.h,
@@ -291,11 +296,11 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
             child: Container(
               padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -309,18 +314,22 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
             ),
           ),
         ),
-        
+
         // Stock Status Overlay
         if (widget.product.isOutOfStock)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(12.r),
                   topRight: Radius.circular(12.r),
-                  bottomLeft: widget.isGridView ? Radius.zero : Radius.circular(12.r),
-                  bottomRight: widget.isGridView ? Radius.zero : Radius.circular(12.r),
+                  bottomLeft: widget.isGridView
+                      ? Radius.zero
+                      : Radius.circular(12.r),
+                  bottomRight: widget.isGridView
+                      ? Radius.zero
+                      : Radius.circular(12.r),
                 ),
               ),
               child: Center(
@@ -342,26 +351,31 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
   Widget _buildPriceSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Current Price
         Text(
-          'TZS ${_formatPrice(widget.product.price)}',
+          '${widget.product.currency} ${_formatPrice(widget.product.price)}',
           style: TextStyle(
             fontSize: widget.isGridView ? 14.sp : 16.sp,
             fontWeight: FontWeight.w700,
             color: Theme.of(context).primaryColor,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        
+
         // Original Price (if on sale)
         if (widget.product.isOnSale && widget.product.originalPrice != null)
           Text(
-            'TZS ${_formatPrice(widget.product.originalPrice!)}',
+            '${widget.product.currency} ${_formatPrice(widget.product.originalPrice!)}',
             style: TextStyle(
               fontSize: widget.isGridView ? 12.sp : 14.sp,
               color: Theme.of(context).hintColor,
               decoration: TextDecoration.lineThrough,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
       ],
     );
@@ -371,18 +385,11 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.star,
-          size: 14.sp,
-          color: Colors.amber,
-        ),
+        Icon(Icons.star, size: 14.sp, color: Colors.amber),
         SizedBox(width: 2.w),
         Text(
           widget.product.rating.toStringAsFixed(1),
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
         ),
         if (widget.product.reviewCount > 0) ...[
           SizedBox(width: 2.w),
@@ -401,7 +408,7 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
   Widget _buildStockStatus(BuildContext context) {
     Color statusColor;
     String statusText;
-    
+
     if (widget.product.isOutOfStock) {
       statusColor = Theme.of(context).colorScheme.error;
       statusText = 'Out of Stock';
@@ -412,16 +419,13 @@ class _ProductCardState extends ConsumerState<ProductCard> with SingleTickerProv
       statusColor = Colors.green;
       statusText = 'In Stock';
     }
-    
+
     return Row(
       children: [
         Container(
           width: 6.w,
           height: 6.w,
-          decoration: BoxDecoration(
-            color: statusColor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
         ),
         SizedBox(width: 4.w),
         Text(

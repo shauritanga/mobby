@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/review.dart';
-import '../providers/product_providers_setup.dart';
+import '../providers/review_providers.dart';
 
 class ProductReviewsSection extends ConsumerWidget {
   final String productId;
@@ -226,7 +226,7 @@ class ProductReviewsSection extends ConsumerWidget {
                 radius: 20.r,
                 backgroundColor: Theme.of(
                   context,
-                ).primaryColor.withOpacity(0.1),
+                ).primaryColor.withValues(alpha: 0.1),
                 child: Text(
                   review.userName.isNotEmpty
                       ? review.userName[0].toUpperCase()
@@ -288,7 +288,7 @@ class ProductReviewsSection extends ConsumerWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                   child: Text(

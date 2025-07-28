@@ -122,13 +122,17 @@ class LATRADocumentModel extends LATRADocument {
   }
 
   /// Create model from Firestore document
-  factory LATRADocumentModel.fromFirestore(Map<String, dynamic> doc, String id) {
+  factory LATRADocumentModel.fromFirestore(
+    Map<String, dynamic> doc,
+    String id,
+  ) {
     final data = Map<String, dynamic>.from(doc);
     data['id'] = id;
     return LATRADocumentModel.fromJson(data);
   }
 
   /// Create copy with updated fields
+  @override
   LATRADocumentModel copyWith({
     String? id,
     String? applicationId,

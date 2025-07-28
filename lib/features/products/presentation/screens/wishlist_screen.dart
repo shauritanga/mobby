@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobby/features/profile/presentation/providers/profile_integration_providers.dart';
 
 import '../../domain/entities/product.dart';
 import '../../domain/entities/wishlist.dart';
 import '../providers/product_providers_setup.dart';
-import '../providers/simple_providers.dart';
+import '../providers/user_product_providers.dart';
 import '../widgets/wishlist_header.dart';
 import '../widgets/wishlist_filter_bar.dart';
 import '../widgets/wishlist_product_card.dart';
 import '../widgets/wishlist_empty_state.dart';
 import '../widgets/wishlist_loading_grid.dart';
 import '../widgets/product_error_widget.dart';
+import '../../../cart/presentation/providers/cart_providers.dart';
 
 class WishlistScreen extends ConsumerStatefulWidget {
   const WishlistScreen({super.key});
@@ -58,7 +60,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
 
   @override
   Widget build(BuildContext context) {
-    final wishlistAsync = ref.watch(userWishlistProvider('current_user_id'));
+    final wishlistAsync = ref.watch(userWishlistWithProductsProvider);
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -67,8 +69,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
         loading: () => const WishlistLoadingGrid(),
         error: (error, stack) => ProductErrorWidget(
           error: error.toString(),
-          onRetry: () =>
-              ref.invalidate(userWishlistProvider('current_user_id')),
+          onRetry: () => ref.invalidate(userWishlistWithProductsProvider),
           customTitle: 'Failed to load wishlist',
         ),
       ),
@@ -398,7 +399,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
   }
 
   void _selectAll() {
-    final wishlistAsync = ref.read(userWishlistProvider('current_user_id'));
+    final wishlistAsync = ref.read(userWishlistWithProductsProvider);
     wishlistAsync.whenData((wishlist) {
       setState(() {
         _selectedProductIds = wishlist.products.map((p) => p.id).toSet();
@@ -436,7 +437,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
   }
 
   void _removeFromWishlist(Product product) {
-    ref.removeFromWishlist('current_user_id', product.id);
+    ref.toggleWishlist(product.id);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -444,7 +445,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () => ref.addToWishlist('current_user_id', product.id),
+          onPressed: () => ref.toggleWishlist(product.id),
         ),
       ),
     );
@@ -452,7 +453,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
 
   void _removeSelectedFromWishlist() {
     for (final productId in _selectedProductIds) {
-      ref.removeFromWishlist('current_user_id', productId);
+      ref.toggleWishlist(productId);
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -467,43 +468,72 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
     _exitSelectionMode();
   }
 
-  void _addToCart(Product product) {
-    ref.addToCart(product, 1);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} added to cart'),
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: 'View Cart',
-          onPressed: () => context.push('/cart'),
-        ),
-      ),
-    );
+  void _addToCart(Product product) async {
+    try {
+      await ref.addToCart(product, 1);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.name} added to cart'),
+            duration: const Duration(seconds: 2),
+            action: SnackBarAction(
+              label: 'View Cart',
+              onPressed: () => context.push('/cart'),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add to cart: $e')));
+      }
+    }
   }
 
-  void _addSelectedToCart() {
-    final wishlistAsync = ref.read(userWishlistProvider('current_user_id'));
-    wishlistAsync.whenData((wishlist) {
-      final selectedProducts = wishlist.products
-          .where((p) => _selectedProductIds.contains(p.id))
-          .toList();
+  void _addSelectedToCart() async {
+    final wishlistAsync = ref.read(userWishlistWithProductsProvider);
+    await wishlistAsync.when(
+      data: (wishlist) async {
+        final selectedProducts = wishlist.products
+            .where((p) => _selectedProductIds.contains(p.id))
+            .toList();
 
-      for (final product in selectedProducts) {
-        ref.addToCart(product, 1);
-      }
+        try {
+          for (final product in selectedProducts) {
+            await ref.addToCart(product, 1);
+          }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${selectedProducts.length} items added to cart'),
-          duration: const Duration(seconds: 2),
-          action: SnackBarAction(
-            label: 'View Cart',
-            onPressed: () => context.push('/cart'),
-          ),
-        ),
-      );
-    });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${selectedProducts.length} items added to cart'),
+                duration: const Duration(seconds: 2),
+                action: SnackBarAction(
+                  label: 'View Cart',
+                  onPressed: () => context.push('/cart'),
+                ),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to add items to cart: $e')),
+            );
+          }
+        }
+      },
+      loading: () async {},
+      error: (error, stack) async {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading wishlist: $error')),
+          );
+        }
+      },
+    );
 
     _exitSelectionMode();
   }
@@ -548,7 +578,7 @@ class _WishlistScreenState extends ConsumerState<WishlistScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              ref.clearWishlist('current_user_id');
+              ref.read(wishlistManagerProvider.notifier).clearWishlist();
 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

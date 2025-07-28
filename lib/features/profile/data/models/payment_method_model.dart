@@ -1,11 +1,7 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/payment_method.dart';
-
-part 'payment_method_model.g.dart';
 
 /// Payment method model for data layer
 /// Following Firebase integration pattern as specified in FEATURES_DOCUMENTATION.md
-@JsonSerializable()
 class PaymentMethodModel extends PaymentMethod {
   const PaymentMethodModel({
     required super.id,
@@ -26,10 +22,54 @@ class PaymentMethodModel extends PaymentMethod {
     super.updatedAt,
   });
 
-  factory PaymentMethodModel.fromJson(Map<String, dynamic> json) =>
-      _$PaymentMethodModelFromJson(json);
+  factory PaymentMethodModel.fromJson(Map<String, dynamic> json) {
+    return PaymentMethodModel(
+      id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
+      type: PaymentMethodType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => PaymentMethodType.cashOnDelivery,
+      ),
+      displayName: json['displayName'] ?? '',
+      cardNumber: json['cardNumber'],
+      cardHolderName: json['cardHolderName'],
+      expiryMonth: json['expiryMonth'],
+      expiryYear: json['expiryYear'],
+      bankName: json['bankName'],
+      accountNumber: json['accountNumber'],
+      mobileNumber: json['mobileNumber'],
+      provider: json['provider'],
+      isDefault: json['isDefault'] ?? false,
+      isActive: json['isActive'] ?? true,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$PaymentMethodModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'type': type.name,
+      'displayName': displayName,
+      'cardNumber': cardNumber,
+      'cardHolderName': cardHolderName,
+      'expiryMonth': expiryMonth,
+      'expiryYear': expiryYear,
+      'bankName': bankName,
+      'accountNumber': accountNumber,
+      'mobileNumber': mobileNumber,
+      'provider': provider,
+      'isDefault': isDefault,
+      'isActive': isActive,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
 
   factory PaymentMethodModel.fromEntity(PaymentMethod paymentMethod) {
     return PaymentMethodModel(
@@ -74,7 +114,10 @@ class PaymentMethodModel extends PaymentMethod {
   }
 
   // Firebase specific factory
-  factory PaymentMethodModel.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory PaymentMethodModel.fromFirestore(
+    Map<String, dynamic> data,
+    String documentId,
+  ) {
     return PaymentMethodModel(
       id: documentId,
       userId: data['userId'] ?? '',

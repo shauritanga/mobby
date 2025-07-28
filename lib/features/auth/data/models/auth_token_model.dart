@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/auth_token.dart';
 
-part 'auth_token_model.g.dart';
-
-@JsonSerializable()
 class AuthTokenModel extends AuthToken {
   const AuthTokenModel({
     required super.accessToken,
@@ -12,10 +8,28 @@ class AuthTokenModel extends AuthToken {
     super.tokenType,
   });
 
-  factory AuthTokenModel.fromJson(Map<String, dynamic> json) =>
-      _$AuthTokenModelFromJson(json);
+  factory AuthTokenModel.fromMap(Map<String, dynamic> map) {
+    return AuthTokenModel(
+      accessToken: map['accessToken'] as String,
+      refreshToken: map['refreshToken'] as String?,
+      expiresAt: DateTime.parse(map['expiresAt'] as String),
+      tokenType: map['tokenType'] as String? ?? 'Bearer',
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$AuthTokenModelToJson(this);
+  Map<String, dynamic> toMap() {
+    return {
+      'accessToken': accessToken,
+      'refreshToken': refreshToken,
+      'expiresAt': expiresAt.toIso8601String(),
+      'tokenType': tokenType,
+    };
+  }
+
+  // For backward compatibility
+  factory AuthTokenModel.fromJson(Map<String, dynamic> json) =>
+      AuthTokenModel.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 
   factory AuthTokenModel.fromEntity(AuthToken token) {
     return AuthTokenModel(
@@ -36,7 +50,10 @@ class AuthTokenModel extends AuthToken {
   }
 
   // Firebase specific factory - create from Firebase ID token
-  factory AuthTokenModel.fromFirebaseToken(String idToken, {Duration? expiryDuration}) {
+  factory AuthTokenModel.fromFirebaseToken(
+    String idToken, {
+    Duration? expiryDuration,
+  }) {
     return AuthTokenModel(
       accessToken: idToken,
       refreshToken: null, // Firebase handles refresh automatically

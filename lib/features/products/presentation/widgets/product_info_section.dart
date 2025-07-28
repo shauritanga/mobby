@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/product.dart';
-import '../providers/product_providers_setup.dart';
 
 class ProductInfoSection extends ConsumerWidget {
   final Product product;
@@ -93,10 +92,10 @@ class ProductInfoSection extends ConsumerWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16.r),
               border: Border.all(
-                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -158,56 +157,66 @@ class ProductInfoSection extends ConsumerWidget {
   }
 
   Widget _buildRatingSection(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        // Star rating
+        // First row: Stars, rating, and reviews
         Row(
-          children: List.generate(5, (index) {
-            final starValue = index + 1;
-            final rating = product.rating;
+          children: [
+            // Star rating
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(5, (index) {
+                final starValue = index + 1;
+                final rating = product.rating;
 
-            return Icon(
-              starValue <= rating
-                  ? Icons.star
-                  : starValue - 0.5 <= rating
-                  ? Icons.star_half
-                  : Icons.star_border,
-              size: 20.sp,
-              color: Colors.amber,
-            );
-          }),
-        ),
+                return Icon(
+                  starValue <= rating
+                      ? Icons.star
+                      : starValue - 0.5 <= rating
+                      ? Icons.star_half
+                      : Icons.star_border,
+                  size: 18.sp, // Slightly smaller to save space
+                  color: Colors.amber,
+                );
+              }),
+            ),
 
-        SizedBox(width: 8.w),
+            SizedBox(width: 8.w),
 
-        // Rating value
-        Text(
-          product.rating.toStringAsFixed(1),
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
+            // Rating value
+            Text(
+              product.rating.toStringAsFixed(1),
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
 
-        SizedBox(width: 8.w),
+            SizedBox(width: 8.w),
 
-        // Review count
-        Text(
-          '(${product.reviewCount} reviews)',
-          style: TextStyle(fontSize: 14.sp, color: Theme.of(context).hintColor),
-        ),
+            // Review count - make it flexible
+            Expanded(
+              child: Text(
+                '(${product.reviewCount} reviews)',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Theme.of(context).hintColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
 
-        const Spacer(),
-
-        // Product ID
-        Text(
-          'ID: ${product.sku ?? product.id.substring(0, 8)}',
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: Theme.of(context).hintColor,
-            fontFamily: 'monospace',
-          ),
+            // Product ID
+            Text(
+              'ID: ${product.sku.isNotEmpty ? product.sku : product.id.substring(0, 8)}',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Theme.of(context).hintColor,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -295,9 +304,9 @@ class ProductInfoSection extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -418,9 +427,9 @@ class ProductInfoSection extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -3,9 +3,9 @@ import 'package:equatable/equatable.dart';
 /// Base failure class for error handling
 abstract class Failure extends Equatable {
   final String message;
-  
+
   const Failure(this.message);
-  
+
   @override
   List<Object> get props => [message];
 }
@@ -48,6 +48,16 @@ class FileFailure extends Failure {
 /// Database failure
 class DatabaseFailure extends Failure {
   const DatabaseFailure(super.message);
+}
+
+/// Not found failure
+class NotFoundFailure extends Failure {
+  const NotFoundFailure(super.message);
+}
+
+/// Timeout failure
+class TimeoutFailure extends Failure {
+  const TimeoutFailure(super.message);
 }
 
 /// Unknown failure
